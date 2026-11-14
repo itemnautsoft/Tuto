@@ -103,3 +103,6 @@ Tap **👥 Play together** in Jam to start or join a room (same codes as the pla
 Tuto now always has a basketball in Maker (toggle with **🏀 Dribble** in the ☰ menu). Standing still he dances while handling it: same-hand dribbles, crossovers, between the legs, behind the back, plus occasional show moves (spinning the ball on a fingertip, rolling it across his arms). Moving he dribbles on the run, and when you reverse or switch direction he does a one-foot spin or a juke. Both hands are placed on the ball with a small two-bone arm solver. The ball disappears for the jump shot, grabs, flips, glides and when a rival has him.
 
 The dribbled ball is now the same ball Tuto shoots as a point, and it takes the colour picked in the Maker menu (the swatch row).
+
+## Trooper (secret character)
+On the planet, tap Tuto three times in a row and he turns into the Trooper: a blocky helmeted gunner with a black vest and a huge black gun. A new fire button appears (or press F); hold it to keep shooting. The balls fly along the planet and knock back whatever they hit: dinosaurs get launched like a throw, and other players in a room get knocked back too (they see the shots as well). Tap him three times again to turn back.

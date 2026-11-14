@@ -43,6 +43,10 @@
   #act .i-throw { display:none; }
   #act.ready { opacity:1; background:#FFE94A; border-color:#141018; animation: actpulse 1s ease-in-out infinite; }
   #act.throw .i-grab { display:none; } #act.throw .i-throw { display:block; }
+  #fire { position:fixed; right:128px; bottom:120px; width:70px; height:70px; z-index:4; border-radius:50%; display:none; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.55); border:4px solid #141018; padding:0; touch-action:none; }
+  #fire.on { background:#FF7A2F; transform:scale(1.06); }
+  body.trooper:not(.m-maker):not(.m-jam):not(.m-mocap):not(.m-frame):not(.intro) #fire { display:flex; }
   @keyframes actpulse { 50% { transform: scale(1.08); } }
   #roomChip { position:fixed; top:18px; left:14px; z-index:4; font:inherit; font-size:17px;
     padding:4px 14px; border:3px solid #161216; border-radius:14px; color:#161216; white-space:nowrap; }
@@ -244,6 +248,7 @@
 <button id="music" aria-label="Music on/off" aria-pressed="true">♪</button>
 <button id="mp" aria-label="Play together"><svg viewBox="0 0 48 40" width="30" height="26"><circle cx="17" cy="14" r="8" fill="#FDBA1C" stroke="#161216" stroke-width="3.5"/><circle cx="33" cy="16" r="7" fill="#7ED6A8" stroke="#161216" stroke-width="3.5"/><path d="M4 36 q13-16 26 0 M24 36 q10-13 21 0" fill="none" stroke="#161216" stroke-width="3.5" stroke-linecap="round"/></svg></button>
 <button id="act" aria-label="Pick up / throw"><svg class="i-grab" viewBox="0 0 48 48" width="38" height="38"><rect x="12" y="8" width="22" height="28" rx="11" fill="#E8502E" stroke="#141018" stroke-width="4"/><ellipse cx="35" cy="24" rx="6" ry="8.5" transform="rotate(28 35 24)" fill="#E8502E" stroke="#141018" stroke-width="4"/><rect x="13" y="34" width="20" height="8" rx="2" fill="#E8502E" stroke="#141018" stroke-width="4"/></svg><svg class="i-throw" viewBox="0 0 48 48" width="38" height="38"><path d="M10 38 Q10 12 34 12" fill="none" stroke="#141018" stroke-width="6" stroke-linecap="round"/><path d="M27 5 L36 12 L27 19" fill="none" stroke="#141018" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
+<button id="fire" aria-label="Fire"><svg viewBox="0 0 48 32" width="44" height="30"><rect x="3" y="6" width="34" height="14" rx="2" fill="#1B1820" stroke="#141018" stroke-width="3"/><rect x="36" y="9" width="9" height="8" rx="2" fill="#4F4A5C" stroke="#141018" stroke-width="3"/><rect x="12" y="19" width="8" height="10" rx="1" fill="#1B1820" stroke="#141018" stroke-width="3"/></svg></button>
 <div id="roomChip" hidden></div>
 <div id="mpPanel" hidden data-state="out">
   <div class="mp-card">
@@ -779,6 +784,10 @@ zapBtn.addEventListener('pointerdown', e => {
   zapOn = !zapOn; zapBtn.classList.toggle('on', zapOn); zapBtn.setAttribute('aria-pressed', zapOn);
   e.preventDefault(); e.stopPropagation();
 });
+
+const fireBtn = document.getElementById('fire');
+fireBtn.addEventListener('pointerdown', e => { fireHeld = true; fireBtn.classList.add('on'); try { fireBtn.setPointerCapture(e.pointerId); } catch (_) { } e.preventDefault(); e.stopPropagation(); });
+const fireUp = e => { fireHeld = false; fireBtn.classList.remove('on'); }; fireBtn.addEventListener('pointerup', fireUp); fireBtn.addEventListener('pointercancel', fireUp);
 
 // spark particles
 const sparkTex = (() => {
@@ -1369,8 +1378,118 @@ const PALETTES = [
 let heroPal = 0;
 const Net = { active: false, code: null, myId: 'solo', since: Date.now(), isHost: true, hostId: null,
   states: new Map(), seen: new Map(), remotes: new Map(), T: null, kind: '' };
+// ---------- Trooper: tap Tuto three times and he becomes a helmeted gunner with a huge black gun that fires knock-back balls ----------
+let trooper = false, recoil = 0, fireHeld = false, fireCd = 0, fireSeq = 0, lastFire = null, kbSeq = 0, lastKb = null;
+const TRC = { white: 0xF2F2EE, grey: 0xC9C9D1, black: 0x1B1820, dark: 0x2B2832, steel: 0x4F4A5C };
+function buildTrooper() {
+  const ch = buildCharacter({ head: TRC.white, torso: TRC.white, red: TRC.black });
+  const body = ch.body, P = ch.parts, white = toon(TRC.white), grey = toon(TRC.grey), blk = toon(TRC.black), drk = toon(TRC.dark), stl = toon(TRC.steel);
+  const rb = (w, h, d, r = 0.04) => new RoundedBoxGeometry(w, h, d, 3, r);
+  const add = (parent, geo, mat, x, y, z, rx = 0, ry = 0, rz = 0) => { const m = new THREE.Mesh(geo, mat); m.position.set(x, y, z); m.rotation.set(rx, ry, rz); parent.add(m); return m; };
+  // blocky legs, hips and torso
+  for (const hip of [P.hipL, P.hipR]) { const th = hip.children[0]; th.geometry = new THREE.BoxGeometry(0.2, 0.35, 0.2); th.material = white; }
+  for (const kn of [P.knL, P.knR]) { kn.children[0].material = white; kn.children[1].geometry = new THREE.BoxGeometry(0.2, 0.34, 0.2); kn.children[1].material = white; }
+  const pants = body.children.find(c => c.isMesh && c.geometry.type === 'SphereGeometry');
+  pants.geometry = new RoundedBoxGeometry(1, 1, 1, 3, 0.08); pants.scale.set(0.66, 0.24, 0.44); pants.position.y = 0.95; pants.material = drk;
+  P.torso.geometry = rb(0.68, 0.52, 0.5, 0.05); P.torso.position.y = 1.16; P.torso.material = white;
+  body.children.forEach(c => { if (c.isMesh && c.geometry.type === 'CylinderGeometry' && Math.abs(c.position.y - 1.43) < 0.01) c.visible = false; });
+  // black vest: chest + back plates, shoulder straps, belt and pouches
+  add(body, rb(0.6, 0.46, 0.1, 0.03), blk, 0, 1.15, 0.235); add(body, rb(0.6, 0.46, 0.1, 0.03), blk, 0, 1.15, -0.235);
+  for (const s of [-1, 1]) add(body, rb(0.15, 0.1, 0.48, 0.03), blk, 0.22 * s, 1.4, 0);
+  add(body, rb(0.72, 0.08, 0.5, 0.02), blk, 0, 0.9, 0); add(body, rb(0.12, 0.09, 0.05, 0.015), stl, 0, 0.9, 0.27);
+  for (const s of [-1, 1]) add(body, rb(0.17, 0.13, 0.07, 0.02), stl, 0.15 * s, 1.03, 0.29);
+  // helmet (the old round head, face and stick cap go away)
+  const head = P.head; head.children.forEach(c => { c.visible = false; }); P.headY = 1.86; head.position.y = 1.86;
+  add(head, new THREE.SphereGeometry(1, 28, 20), white, 0, 0.04, 0).scale.set(0.37, 0.43, 0.4);
+  add(head, rb(0.62, 0.24, 0.52, 0.07), white, 0, -0.27, 0);
+  add(head, rb(0.08, 0.05, 0.5, 0.02), grey, 0, 0.46, 0);
+  for (const s of [-1, 1]) {
+    add(head, rb(0.3, 0.19, 0.06, 0.04), grey, 0.16 * s, 0.07, 0.345, 0, 0.4 * s, 0.18 * s);       // goggle rims
+    add(head, rb(0.25, 0.14, 0.08, 0.04), blk, 0.16 * s, 0.07, 0.365, 0, 0.4 * s, 0.18 * s);         // goggles
+    add(head, new THREE.SphereGeometry(0.04, 10, 8), grey, 0.215 * s, -0.3, 0.3);                    // cheek dots
+    add(head, rb(0.17, 0.05, 0.06, 0.015), grey, 0.08 * s, -0.19, 0.345, 0, 0, 0.5 * s);             // mouth chevron
+    add(head, rb(0.12, 0.04, 0.05, 0.015), grey, 0.06 * s, -0.27, 0.32, 0, 0, 0.5 * s);
+  }
+  add(head, rb(0.1, 0.07, 0.05, 0.02), grey, 0, -0.36, 0.3);
+  // the gun: a huge black block (bigger than he is) with a scope, grip, magazine and a rimmed muzzle
+  const gun = new THREE.Group(); body.add(gun); ch.gun = gun;
+  add(gun, rb(0.5, 0.7, 2.2, 0.05), drk, 0, 0.55, 0.95);
+  add(gun, rb(0.52, 0.12, 1.0, 0.03), blk, 0, 0.3, 1.1);
+  add(gun, rb(0.26, 0.4, 0.3, 0.04), blk, 0, 0.0, 0.0);
+  add(gun, rb(0.22, 0.66, 0.36, 0.04), blk, 0, -0.1, 1.5, -0.3, 0, 0);
+  add(gun, rb(0.36, 0.2, 1.1, 0.04), blk, 0, 1.03, 1.0);
+  for (const z of [0.6, 1.4]) add(gun, rb(0.12, 0.12, 0.12, 0.02), stl, 0, 0.92, z);
+  add(gun, new THREE.CylinderGeometry(0.2, 0.2, 0.38, 14).rotateX(Math.PI / 2), blk, 0, 0.55, 2.2);
+  add(gun, new THREE.TorusGeometry(0.2, 0.04, 6, 16), stl, 0, 0.55, 2.4);
+  add(gun, rb(0.08, 0.34, 1.2, 0.02), stl, 0.26, 0.55, 0.9); add(gun, rb(0.08, 0.34, 1.2, 0.02), stl, -0.26, 0.55, 0.9);
+  ch.muzzle = new THREE.Object3D(); ch.muzzle.position.set(0, 0.55, 2.55); gun.add(ch.muzzle);
+  ch.trooper = true; ch.tq = { R: [-0.4, -0.5, -0.7], L: [-0.4, -0.5, -0.7] };
+  return ch;
+}
+// holds the gun: both hands are placed on it with the arm solver, and it kicks back when fired
+function trooperPose(ch, w, rc) {
+  const P = ch.parts, G = ch.gun, q = ch.tq;
+  G.position.set(-0.1, 1.0, 0.42 - rc * 0.3); G.rotation.x = -rc * 0.1; ch.body.rotation.x -= rc * 0.08;
+  if (w < 0.01) return;
+  const T = { R: [-0.1, 0.99, 0.46 - rc * 0.3], L: [0.17, 1.28, 0.6 - rc * 0.3] };
+  for (const h of ['R', 'L']) {
+    const sg = h === 'R' ? 1 : -1, sh = h === 'R' ? P.shL : P.shR, el = h === 'R' ? P.elL : P.elR, t = T[h];
+    ikSolve(q[h], t[0] * sg, t[1], t[2]);
+    sh.rotation.z += (q[h][0] * sg - sh.rotation.z) * w; sh.rotation.x += (q[h][1] - sh.rotation.x) * w; el.rotation.x += (q[h][2] - el.rotation.x) * w;
+  }
+}
+const trWeight = (glide, hold, flip, held, sit, dance) => (1 - glide) * (1 - hold) * (flip ? 0 : 1) * (held ? 0 : 1) * (1 - sit) * (dance ? 0 : 1);
+function setTrooper(on) {
+  if (trooper === on) return; trooper = on;
+  const old = hero; hero = on ? buildTrooper() : buildCharacter(PALETTES[heroPal]); hero.anim = old.anim;
+  hero.root.scale.setScalar(CHAR_SCALE); hero.root.visible = old.root.visible; hero.root.position.copy(old.root.position); hero.root.quaternion.copy(old.root.quaternion);
+  scene.remove(old.root); scene.add(hero.root);
+  document.body.classList.toggle('trooper', on); recoil = 0; fireHeld = false; fireCd = 0;
+  for (let i = 0; i < 30; i++) emitSpark(new THREE.Vector3().copy(hero.root.position).addScaledVector(up, 0.3 + Math.random() * 1.4).add(new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).multiplyScalar(1.2)), up, true);
+}
+// the balls: they fly along the planet's surface, and whatever they hit gets knocked back
+const balls = [], BALL_R = 0.2, BALL_SPEED = 16, BALL_GEO = new THREE.SphereGeometry(BALL_R, 14, 10), BALL_RING = new THREE.TorusGeometry(BALL_R * 1.01, 0.018, 5, 18);
+const BALL_SEAM = (() => { const m = new THREE.MeshBasicMaterial({ color: 0x161216 }); m.userData.outlineParameters = { visible: false }; return m; })();
+function spawnBall(u, d, h, own) {
+  const m = new THREE.Mesh(BALL_GEO, toon(0xFF7A2F)); m.add(new THREE.Mesh(BALL_RING, BALL_SEAM)); const r2 = new THREE.Mesh(BALL_RING, BALL_SEAM); r2.rotation.y = Math.PI / 2; m.add(r2);
+  m.position.copy(u).multiplyScalar(R + h); scene.add(m); balls.push({ m, up: u.clone(), dir: d.clone(), h, t: 0, own, em: 0 });
+}
+const _bq = new THREE.Quaternion(), _bv = new THREE.Vector3(), _bp = new THREE.Vector3();
+function ballPop(b) { _bp.copy(b.up).multiplyScalar(R + b.h); for (let i = 0; i < 12; i++) emitSpark(_bp, b.up, true); }
+function knockDino(d, dir) {
+  if (d === riding || (holding && holding.d === d)) return;
+  d.local = true; d.state = DST.thrown; d.vy = 6.5; d.tdir.copy(dir); d.tspeed = THROW_FWD * 1.2; d.tumble = 0; d.squash = 0; if (d.jaw) d.roar = 1;
+}
+function updateBalls(dt) {
+  for (let i = balls.length - 1; i >= 0; i--) {
+    const b = balls[i]; b.t += dt; let dead = b.t > 1.5;
+    _bv.copy(b.up).cross(b.dir).normalize(); _bq.setFromAxisAngle(_bv, BALL_SPEED * dt / (R + b.h));
+    b.up.applyQuaternion(_bq).normalize(); b.dir.applyQuaternion(_bq); b.dir.addScaledVector(b.up, -b.dir.dot(b.up)).normalize();
+    b.m.position.copy(b.up).multiplyScalar(R + b.h); b.m.rotation.x += dt * 14;
+    b.em += dt; if (b.em > 0.05) { b.em = 0; _bp.copy(b.m.position); emitSpark(_bp, b.up, false); }
+    if (b.own && !dead) {
+      for (const d of dinos) {
+        if (d.state === DST.held || d.state === DST.ridden || d.remote) continue;
+        if (b.up.angleTo(d.up) * R < d.radius + BALL_R + 0.1 && b.h > d.h - 0.3 && b.h < d.h + d.topH + 0.3) { knockDino(d, b.dir); dead = true; break; }
+      }
+      if (!dead) for (const rp of Net.remotes.values()) {
+        if (!rp.vis) continue;
+        if (b.up.angleTo(rp.up) * R < 0.75 && Math.abs(b.h - (rp.h + 0.8)) < 1.3) { lastKb = { to: rp.id, seq: ++kbSeq, d: [b.dir.x, b.dir.y, b.dir.z].map(v => Math.round(v * 1000) / 1000) }; dead = true; break; }
+      }
+      if (!dead) for (const o of obstacles) if (b.up.angleTo(o.p) < o.a && b.h < (o.maxH !== undefined ? o.maxH : 3)) { dead = true; break; }
+      if (dead && b.t <= 1.5) ballPop(b);
+    }
+    if (dead) { scene.remove(b.m); balls.splice(i, 1); }
+  }
+}
+function fireBall() {
+  const hp = hero.muzzle.getWorldPosition(new THREE.Vector3()), u = hp.clone().normalize(), h = hp.length() - R;
+  spawnBall(u, facing, h, true); recoil = 1; fireCd = 0.34;
+  lastFire = { seq: ++fireSeq, u: [u.x, u.y, u.z].map(v => Math.round(v * 1000) / 1000), d: [facing.x, facing.y, facing.z].map(v => Math.round(v * 1000) / 1000), h: Math.round(h * 1000) / 1000 };
+  for (let i = 0; i < 6; i++) emitSpark(hp, up, i < 2);
+}
 function rebuildHero(pi) {
-  const old = hero; hero = buildCharacter(PALETTES[pi]); hero.anim = old.anim;
+  const old = hero; hero = trooper ? buildTrooper() : buildCharacter(PALETTES[pi]); hero.anim = old.anim;
   hero.root.scale.setScalar(CHAR_SCALE); hero.root.visible = old.root.visible;
   scene.remove(old.root); scene.add(hero.root); heroPal = pi;
 }
@@ -1393,15 +1512,16 @@ function playerSpots() {
 }
 function upsertRemote(id, st, idx) {
   let rp = Net.remotes.get(id);
-  if (!rp || rp.pal !== idx) {
+  if (!rp || rp.pal !== idx || rp.tr !== !!st.tr) {
     if (rp) { scene.remove(rp.ch.root, rp.shadow, rp.label); }
-    const ch = buildCharacter(PALETTES[idx]); ch.anim = newAnim(); ch.root.scale.setScalar(CHAR_SCALE); scene.add(ch.root);
+    const ch = st.tr ? buildTrooper() : buildCharacter(PALETTES[idx]); ch.anim = newAnim(); ch.root.scale.setScalar(CHAR_SCALE); scene.add(ch.root);
     const sh = new THREE.Mesh(shadow.geometry, shadow.material); scene.add(sh);
     const label = makeLabel('P' + (idx + 1), PALETTES[idx].css); scene.add(label);
     const prev = rp;
     rp = { id, ch, shadow: sh, label, pal: idx, up: new THREE.Vector3(st.p[0], st.p[1], st.p[2]).normalize(),
       facing: new THREE.Vector3(st.p[3], st.p[4], st.p[5]), h: st.p[6], vis: false, flipT: -1,
-      thrSeen: prev ? prev.thrSeen : (st.thr ? st.thr.seq : 0) };
+      thrSeen: prev ? prev.thrSeen : (st.thr ? st.thr.seq : 0), tr: !!st.tr,
+      kbSeen: prev ? prev.kbSeen : (st.kb ? st.kb.seq : 0), frSeen: prev ? prev.frSeen : (st.fr ? st.fr.seq : 0) };
     Net.remotes.set(id, rp);
   }
   rp.snap = st;
@@ -1458,6 +1578,8 @@ function applyNet(dt) {
     poseCharacter(rp.ch, { mag: a[0] || 0, zr: a[1], grounded: !!a[2], sit: a[3] || 0, dance: a[4] ?? -1, flipT: rp.flipT,
       airT: a[6] || 0, glide: a[7] || 0, hold: a[8] || 0, ride: a[9] || 0, sx: a[10] || 0, sz: a[11] || 0, held: !!a[12],
       gliding: !!a[13], t: simT / 1000, tms: simT }, dt);
+    if (rp.ch.trooper) trooperPose(rp.ch, trWeight(a[7] || 0, a[8] || 0, rp.flipT >= 0, a[12], a[3] || 0, (a[4] ?? -1) >= 0), 0);
+    if (st.fr && st.fr.seq !== rp.frSeen) { rp.frSeen = st.fr.seq; spawnBall(new THREE.Vector3(...st.fr.u), new THREE.Vector3(...st.fr.d), st.fr.h, false); }
     rp.shadow.position.copy(rp.up).multiplyScalar(R + 0.04);
     rp.shadow.quaternion.setFromUnitVectors(tmpV2.set(0, 0, 1), rp.up);
     rp.label.position.copy(rp.up).multiplyScalar(R + rp.h + 2.1 + (a[8] > 0.5 ? 1.6 : 0));
@@ -1471,6 +1593,8 @@ function buildSnap() {
         holdAmt, rideAmt, lastSX, lastSZ, heldBy ? 1 : 0, gliding ? 1 : 0].map(r),
     carry: holding && holding.kind === 'player' ? holding.id : null, hb: heldBy, thr: lastThrow,
     own: dinos.filter(d => d.local).map(dinoPose) };
+  if (trooper) { s.tr = 1; s.fr = lastFire; }
+  if (lastKb) s.kb = lastKb;
   if (modeKind === 'jam') { s.vis = 0; s.jam = jmSnap(); }
   const rel = dinos.filter(d => !d.local && d.relT && simT - d.relT < 2500).map(d => [...dinoPose(d), Math.round(d.relT)]);
   if (rel.length) s.rel = rel;
@@ -1716,6 +1840,13 @@ function update(dt) {
       if (holding && holding.kind === 'dino') { holding.d.state = DST.thrown; holding.d.vy = 2; holding.d.tdir.copy(facing); holding.d.tspeed = 1; }
       holding = null;
     }
+    if (st.kb && st.kb.seq !== rp.kbSeen) {
+      rp.kbSeen = st.kb.seq;
+      if (st.kb.to === Net.myId && !heldBy) {
+        const kd = new THREE.Vector3(st.kb.d[0], st.kb.d[1], st.kb.d[2]); if (riding) dismount(true, kd);
+        grounded = false; vy = THROW_UP * 0.55; airT = 0; usedFlip = false; flipT = -1; slide = { dir: kd, speed: THROW_FWD }; ortho(slide.dir); setExpr('shocked', 900, simT);
+      }
+    }
     if (st.thr && st.thr.seq !== rp.thrSeen) {
       rp.thrSeen = st.thr.seq;
       if (st.thr.to === Net.myId && heldBy === rp.id) {
@@ -1918,6 +2049,10 @@ function update(dt) {
   lastMag = mag; lastSX = sx; lastSZ = sz; lastZap = zapRun;
   poseCharacter(hero, { mag, zr: zapRun, grounded: grounded || !!riding, sit: sitAmt, dance: dancing ? (idleTime - BD_START) % 7.8 : -1,
     flipT, airT, glide: glideAmt, hold: holdAmt, ride: rideAmt, sx, sz, held: !!heldBy, gliding, t: simT / 1000, tms: simT }, dt);
+  if (hero.trooper) trooperPose(hero, trWeight(glideAmt, holdAmt, flipT >= 0, heldBy, sitAmt, dancing), recoil);
+  recoil = Math.max(0, recoil - dt * 6); fireCd -= dt;
+  if (trooper && controls && mode === 'play' && !heldBy && fireCd <= 0 && (fireHeld || keys.has('KeyF'))) fireBall();
+  updateBalls(dt);
   // the giant stick mirrors the input too
   if (mag > 0.02) {
     const gx = move.x, gz = move.z, gl = Math.hypot(gx, gz);
@@ -2153,7 +2288,9 @@ function heroScreen() {
 }
 let holdT = 0, holdPt = null;
 const stopHold = () => { clearTimeout(holdT); holdT = 0; holdPt = null; holdRing.classList.remove('go'); };
+let tapDown = null, tapN = 0, tapLast = 0;
 cvs.addEventListener('pointerdown', e => {
+  tapDown = null;
   if (modeKind !== 'planet' || mode !== 'play' || !controls || warp) return;
   if (menu) {                                                   // tap a disc directly
     const ndc = new THREE.Vector2(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight) * 2 + 1);
@@ -2164,13 +2301,21 @@ cvs.addEventListener('pointerdown', e => {
   if (camPtrs.size !== 1) return;
   const s = heroScreen();
   if (Math.hypot(e.clientX - s.x, e.clientY - s.y) > s.r) return;
-  holdPt = { x: e.clientX, y: e.clientY };
+  holdPt = { x: e.clientX, y: e.clientY }; tapDown = { t: performance.now(), x: e.clientX, y: e.clientY };
   holdRing.style.left = s.x + 'px'; holdRing.style.top = s.y + 'px'; holdRing.style.width = holdRing.style.height = (s.r * 1.5) + 'px';
   holdRing.classList.remove('go'); void holdRing.offsetWidth; holdRing.classList.add('go');
   holdT = setTimeout(() => { holdT = 0; holdRing.classList.remove('go'); if (camPtrs.size === 1) { if (menu) closeMenu(); else openMenu(); } }, 550);
 });
 cvs.addEventListener('pointermove', e => { if (holdPt && Math.hypot(e.clientX - holdPt.x, e.clientY - holdPt.y) > 14) stopHold(); });
-cvs.addEventListener('pointerup', stopHold); cvs.addEventListener('pointercancel', stopHold);
+cvs.addEventListener('pointerup', e => {                       // three quick taps on Tuto: he swaps into the trooper (and back)
+  const td = tapDown; tapDown = null; stopHold();
+  if (modeKind !== 'planet' || mode !== 'play' || menu) { tapN = 0; return; }
+  const now = performance.now();
+  if (!td || now - td.t > 320 || Math.hypot(e.clientX - td.x, e.clientY - td.y) > 14) { tapN = 0; return; }
+  tapN = now - tapLast < 650 ? tapN + 1 : 1; tapLast = now;
+  if (tapN >= 3) { tapN = 0; setTrooper(!trooper); }
+});
+cvs.addEventListener('pointercancel', () => { tapDown = null; tapN = 0; stopHold(); });
 
 // --- switching modes
 const resetInputs = () => { input.jump = input.act = false; touchVec.x = touchVec.y = 0; stickId = null; keys.clear(); jumpHeld = false; camPtrs.clear(); orbitDelta = pitchDelta = 0; stopHold(); };
