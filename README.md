@@ -106,6 +106,3 @@ The dribbled ball is now the same ball Tuto shoots as a point, and it takes the 
 
 ## Trooper (secret character)
 On the planet, tap Tuto three times in a row and he turns into the Trooper: a blocky helmeted gunner with a black vest and a huge black gun. A new fire button appears (or press F); hold it to keep shooting. The balls fly along the planet and knock back whatever they hit: dinosaurs get launched like a throw, and other players in a room get knocked back too (they see the shots as well). Tap him three times again to turn back.
-
-## Clockwork Buddy model
-Tuto (and the other players, Maker, the rival and the Jam band) now uses the Meshy "Clockwork Buddy" model instead of the built-from-shapes body. The 185k-triangle .blend was read directly (`tools/buddy/blend.py`), cut to 16k triangles with a quadric simplifier that keeps colour borders (`simplify.js`), coloured per face from the base-colour texture into 5 flat toon colours (`post.py`), and auto-skinned onto Tuto's existing joints with the arms shortened to his reach (`skin.py`). Every existing animation drives it. Other players get their palette colour on the head and gloves. The Trooper keeps his own look.
