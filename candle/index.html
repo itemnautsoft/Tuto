@@ -1,0 +1,691 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
+<title>Candle Kid — AR prototype</title>
+<link href="https://fonts.googleapis.com/css2?family=Baloo+2:wght@600;800&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;height:100%;overflow:hidden;background:#000;font-family:'Baloo 2',system-ui,sans-serif;color:#fff;touch-action:none;user-select:none;-webkit-user-select:none}
+#video,#gl,#dark,#fx{position:fixed;inset:0;width:100%;height:100%}
+#video{object-fit:cover;z-index:0;display:none}
+#gl{z-index:1}#dark{z-index:2;pointer-events:none}#fx{z-index:3;pointer-events:none}
+#ui{position:fixed;inset:0;z-index:4}
+#hud{position:absolute;left:12px;right:12px;top:10px;display:none;gap:10px;align-items:center;font-size:14px;pointer-events:none}
+.bar{flex:1;height:12px;border:2px solid #1b120a;border-radius:8px;background:#2a2118;overflow:hidden;box-shadow:0 0 0 2px rgba(255,255,255,.15)}
+.bar i{display:block;height:100%;width:100%;border-radius:5px}
+#flameBar i{background:linear-gradient(90deg,#ff9b2f,#ffe27a)}
+#waxBar i{background:linear-gradient(90deg,#d8d0c4,#fffaf0)}
+.lab{font-weight:800;text-shadow:0 2px 0 #000;white-space:nowrap}
+#msg{position:absolute;left:0;right:0;top:18%;text-align:center;font-size:22px;font-weight:800;text-shadow:0 2px 0 #000,0 0 12px #000;pointer-events:none;opacity:0;transition:opacity .4s;padding:0 20px}
+#msg.on{opacity:1}
+#box{position:absolute;left:50%;bottom:28px;width:230px;height:110px;margin-left:-115px;transition:transform .6s cubic-bezier(.5,-0.3,.4,1.3);transform:translateY(0)}
+#box.away{transform:translateY(200px)}
+#box .body{position:absolute;inset:0;border:4px solid #120c07;border-radius:12px;background:linear-gradient(#c9452f,#9c2f1f);box-shadow:0 6px 0 #120c07}
+#box .label{position:absolute;left:16px;right:16px;bottom:12px;height:34px;border-radius:6px;background:#f6e6c4;border:3px solid #120c07;color:#120c07;font-weight:800;font-size:18px;text-align:center;line-height:28px}
+#striker{position:absolute;left:10px;right:10px;top:10px;height:30px;border-radius:6px;border:3px solid #120c07;background:#5a3a22 repeating-linear-gradient(45deg,rgba(0,0,0,.25) 0 3px,transparent 3px 6px)}
+#striker.hot{box-shadow:0 0 14px 4px rgba(255,170,60,.8)}
+#match{position:absolute;width:16px;height:120px;left:0;top:0;transform-origin:8px 10px;display:none;pointer-events:auto}
+#match .stick{position:absolute;left:4px;top:14px;width:8px;height:104px;background:#e8c890;border:2px solid #120c07;border-radius:3px}
+#match .burnt{position:absolute;left:4px;top:14px;width:8px;height:0;background:#2b1d12;border-radius:3px}
+#match .head{position:absolute;left:0;top:0;width:16px;height:22px;background:#d8402c;border:2px solid #120c07;border-radius:8px 8px 6px 6px}
+#match .fl{position:absolute;left:-14px;top:-50px;width:44px;height:60px;display:none;filter:drop-shadow(0 0 10px #ffb347)}
+#match.lit .fl{display:block}
+#match.lit .head{background:#2b1d12}
+#joy{position:absolute;width:110px;height:110px;margin:-55px 0 0 -55px;border-radius:50%;border:3px solid rgba(255,255,255,.35);display:none;pointer-events:none}
+#joy i{position:absolute;left:50%;top:50%;width:46px;height:46px;margin:-23px 0 0 -23px;border-radius:50%;background:rgba(255,220,150,.45);border:3px solid rgba(255,255,255,.5)}
+.screen{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;background:radial-gradient(circle at 50% 40%,#2a1c10,#000 70%);text-align:center;padding:24px}
+.screen h1{margin:0;font-size:44px;line-height:1;color:#ffe27a;text-shadow:0 0 24px #ff9b2f,0 3px 0 #120c07}
+.screen p{margin:0;max-width:340px;opacity:.85;font-size:16px;line-height:1.35}
+.btn{font:inherit;font-weight:800;font-size:19px;padding:12px 26px;border-radius:14px;border:3px solid #120c07;background:#ffd75e;color:#120c07;box-shadow:0 5px 0 #120c07;cursor:pointer;min-width:230px}
+.btn.alt{background:#efe7da}
+.btn:active{transform:translateY(3px);box-shadow:0 2px 0 #120c07}
+#over,#win{display:none}
+#camNote{font-size:13px;opacity:.7;max-width:320px}
+</style>
+<script type="importmap">{"imports":{"three":"https://cdn.jsdelivr.net/npm/three@0.170.0/build/three.module.min.js"}}</script>
+</head>
+<body>
+<video id="video" playsinline muted autoplay></video>
+<canvas id="gl"></canvas>
+<canvas id="dark"></canvas>
+<canvas id="fx"></canvas>
+<div id="ui">
+  <div id="hud">
+    <span class="lab">🔥</span><div class="bar" id="flameBar"><i></i></div>
+    <span class="lab">Wax</span><div class="bar" id="waxBar"><i></i></div>
+    <span class="lab" id="matchCt">×4</span>
+    <span class="lab" id="candleCt">0/5</span>
+  </div>
+  <div id="msg"></div>
+  <div id="box" class="away"><div class="body"></div><div id="striker"></div><div class="label">MATCHES</div></div>
+  <div id="match"><svg class="fl" viewBox="0 0 44 60"><path d="M22 2C30 16 40 24 40 38a18 18 0 0 1-36 0C4 26 14 22 22 2z" fill="#ffd75e" stroke="#120c07" stroke-width="3"/><path d="M22 26c5 7 8 10 8 16a8 8 0 0 1-16 0c0-6 4-9 8-16z" fill="#fffbe8"/></svg><div class="stick"></div><div class="burnt"></div><div class="head"></div></div>
+  <div id="joy"><i></i></div>
+  <div class="screen" id="title">
+    <h1>Candle Kid</h1>
+    <p>It's dark. Strike a match, light the little candle, and find the other candles before your flame — or your wax — runs out.</p>
+    <button class="btn" id="btnCam">Play with camera</button>
+    <button class="btn alt" id="btnRoom">Play in demo room</button>
+    <div id="camNote"></div>
+  </div>
+  <div class="screen" id="over"><h1 id="overT">Out of matches</h1><p id="overP"></p><button class="btn" id="btnAgain">Try again</button></div>
+  <div class="screen" id="win" style="background:radial-gradient(circle at 50% 40%,rgba(80,50,10,.6),rgba(0,0,0,.6) 70%)"><h1>Room lit!</h1><p id="winP"></p><button class="btn" id="btnAgain2">Play again</button></div>
+</div>
+
+<script type="module">
+import * as THREE from 'three';
+
+// ---------- basics ----------
+const $ = id => document.getElementById(id);
+const glc = $('gl'), dark = $('dark'), fx = $('fx'), video = $('video');
+const dctx = dark.getContext('2d'), fctx = fx.getContext('2d');
+const renderer = new THREE.WebGLRenderer({canvas: glc, antialias: true, alpha: true});
+renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
+renderer.outputColorSpace = THREE.SRGBColorSpace;
+const scene = new THREE.Scene();
+const camera = new THREE.PerspectiveCamera(42, 1, 0.1, 100);
+let W = 0, H = 0;
+function resize(){
+  W = innerWidth; H = innerHeight;
+  renderer.setSize(W, H, false);
+  camera.aspect = W / H; camera.updateProjectionMatrix();
+  for (const c of [dark, fx]) { c.width = W; c.height = H; }
+}
+addEventListener('resize', resize); resize();
+
+// toon ramp
+const ramp = new THREE.DataTexture(new Uint8Array([105, 105, 105, 255, 185, 185, 185, 255, 255, 255, 255, 255]), 3, 1);
+ramp.minFilter = ramp.magFilter = THREE.NearestFilter; ramp.needsUpdate = true;
+const toon = (color, extra = {}) => new THREE.MeshToonMaterial({color, gradientMap: ramp, ...extra});
+const outlineMat = new THREE.ShaderMaterial({
+  uniforms: {th: {value: 0.028}},
+  vertexShader: `uniform float th; void main(){ vec3 p = position + normal * th; gl_Position = projectionMatrix * modelViewMatrix * vec4(p,1.0); }`,
+  fragmentShader: `void main(){ gl_FragColor = vec4(0.05,0.035,0.025,1.0); }`,
+  side: THREE.BackSide
+});
+function mesh(geo, mat, parent, outline = true){
+  const m = new THREE.Mesh(geo, mat);
+  if (outline){ const o = new THREE.Mesh(geo, outlineMat); m.add(o); }
+  parent && parent.add(m); return m;
+}
+const lathe = (pts, seg = 40) => new THREE.LatheGeometry(pts.map(p => new THREE.Vector2(p[0], p[1])), seg);
+
+// ---------- candle kid (modelled on itemnaut's drawing + vinyl figure; 1 unit = wax width) ----------
+const BRASS = 0xc29a4e, WAX = 0xf3f0ea;
+const kid = new THREE.Group(); scene.add(kid);
+const body = new THREE.Group(); kid.add(body);
+const brassMat = toon(BRASS, {emissive: 0x1a0e00});
+const waxMat = toon(WAX, {emissive: 0x000000});
+// holder: pedestal, raised band, round belly, neck, flared cup — one lathe
+{
+  const g = lathe([[0,.25],[.24,.25],[.28,.27],[.3,.3],[.36,.32],[.41,.34],[.425,.36],[.41,.385],[.37,.4],[.385,.43],[.4,.48],[.395,.54],[.37,.6],[.33,.64],[.295,.67],[.285,.69],[.31,.71],[.37,.735],[.45,.77],[.52,.81],[.57,.85],[.585,.87],[.575,.885],[.55,.882],[.5,.855],[.47,.835],[0,.835]], 96);
+  // pinch a pouring spout out of the rim on the left (-x)
+  const p = g.attributes.position;
+  for (let i = 0; i < p.count; i++){
+    const x = p.getX(i), y = p.getY(i), z = p.getZ(i), r = Math.hypot(x, z);
+    if (y < .7 || r < .01) continue;
+    let d = Math.atan2(z, x); d = Math.PI - Math.abs(d); // angular distance from -x
+    const k = Math.exp(-((d / .26) ** 2)) * Math.min(1, ((y - .72) / .16)) ** 2;
+    const nr = r + k * .13;
+    p.setXYZ(i, x / r * nr, y + k ** 1.5 * .07, z / r * nr);
+  }
+  g.computeVertexNormals();
+  mesh(g, brassMat, body);
+  // ear-shaped handle on the right
+  const curve = new THREE.CatmullRomCurve3([[.4,.76],[.52,.78],[.62,.72],[.64,.62],[.6,.53],[.5,.48],[.38,.47]].map(([x, y]) => new THREE.Vector3(x, y, 0)));
+  mesh(new THREE.TubeGeometry(curve, 40, .034, 10), brassMat, body);
+}
+// legs + rounded boots
+const feet = [];
+for (const s of [-1, 1]){
+  const f = new THREE.Group(); f.position.set(s * .16, 0, 0); f.rotation.y = s * .15; kid.add(f);
+  mesh(new THREE.CylinderGeometry(.085, .095, .2, 14).translate(0, .2, 0), brassMat, f);
+  const shoe = mesh(new THREE.SphereGeometry(.17, 20, 14, 0, Math.PI * 2, 0, Math.PI * .6), brassMat, f);
+  shoe.scale.set(.9, .72, 1.35); shoe.position.set(0, .0, .07);
+  feet.push(f);
+}
+// face: low on the wax, just above the cup, like the figure
+const face = new THREE.Group(); body.add(face);
+const black = new THREE.MeshBasicMaterial({color: 0x120c07});
+// wax: one surface — straight column, rounded top, and an overhanging melt layer whose lower edge forms the drip lobes
+const WAX_BASE = .74, WAX_H = 1.0;
+const waxG = new THREE.Group(); waxG.position.y = WAX_BASE; body.add(waxG);
+// [angle from front (+x = right), bottom of lobe (wax-local y), lobe half-width (units)]
+const LOBES = [[-1.24,.42,.16],[-.62,.34,.155],[0,.4,.15],[.6,.31,.16],[1.22,.43,.155],[1.85,.33,.16],[2.47,.41,.155],[3.1,.29,.16],[3.72,.38,.155],[4.35,.32,.16],[4.97,.43,.155],[5.6,.35,.15]];
+const CAP = .74; // top of the valleys between lobes
+function dripBottom(th){
+  let acc = 0; const k = .03;
+  for (const [a, b, R] of LOBES){
+    let d = th - a; d = Math.atan2(Math.sin(d), Math.cos(d));
+    const x = Math.abs(d) * .5;
+    const y = x < R ? b + R - Math.sqrt(R * R - x * x) : CAP + .1;
+    acc += Math.exp(-Math.min(y, CAP + .1) / k);
+  }
+  acc += Math.exp(-(CAP + .1) / k);
+  return Math.min(CAP, -k * Math.log(acc));
+}
+const TOP = 1.0, ROUND = .075;
+function waxRadius(th, y){
+  let r = y < .06 ? .47 + y / .06 * .02 : .49;
+  const b = dripBottom(th), t = y - b;
+  if (t > -.02){ const s = Math.min(1, Math.max(0, (t + .02) / .07)); r += .05 * Math.sin(s * Math.PI / 2) + .015 * Math.exp(-(((t - .07) / .06) ** 2)); }
+  if (y > TOP - ROUND){ const u = (y - (TOP - ROUND)) / ROUND; r *= Math.sqrt(Math.max(0, 1 - u * u)) * .55 + .45 * (1 - u * u * u); }
+  return r;
+}
+{
+  const SEG = 160, ROWS = 160, top = TOP, pos = [], idx = [];
+  for (let j = 0; j <= ROWS; j++){
+    const y = top * j / ROWS;
+    for (let i = 0; i <= SEG; i++){
+      const th = i / SEG * Math.PI * 2 - Math.PI;
+      const r = waxRadius(th, y);
+      pos.push(Math.sin(th) * r, y, Math.cos(th) * r);
+    }
+  }
+  for (let j = 0; j < ROWS; j++) for (let i = 0; i < SEG; i++){
+    const a = j * (SEG + 1) + i, b = a + SEG + 1;
+    idx.push(a, a + 1, b, b, a + 1, b + 1);
+  }
+  const g = new THREE.BufferGeometry();
+  g.setAttribute('position', new THREE.Float32BufferAttribute(pos, 3)); g.setIndex(idx);
+  g.computeVertexNormals();
+  // weld the seam normals
+  const n = g.attributes.normal;
+  for (let j = 0; j <= ROWS; j++){
+    const a = j * (SEG + 1), b = a + SEG;
+    const x = (n.getX(a) + n.getX(b)) / 2, y = (n.getY(a) + n.getY(b)) / 2, z = (n.getZ(a) + n.getZ(b)) / 2;
+    n.setXYZ(a, x, y, z); n.setXYZ(b, x, y, z);
+  }
+  mesh(g, waxMat, waxG);
+  // ink line along the drip edge, like the drawing
+  const pts = [];
+  for (let i = 0; i < 360; i++){
+    const th = i / 360 * Math.PI * 2 - Math.PI, y = dripBottom(th) + .006, r = waxRadius(th, y + .02) + .004;
+    pts.push(new THREE.Vector3(Math.sin(th) * r, y, Math.cos(th) * r));
+  }
+  waxG.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts, true), 720, .009, 5, true), black));
+}
+const eyes = [];
+for (const s of [-1, 1]){
+  const e = new THREE.Mesh(new THREE.SphereGeometry(.032, 14, 10), black);
+  e.scale.set(1, 1.45, .5); e.position.set(s * .11, 1.05, Math.sqrt(.2401 - .11 * .11) + .006); face.add(e); eyes.push(e);
+}
+// smile follows the curve of the wax
+{
+  const pts = [];
+  for (let i = 0; i <= 24; i++){
+    const u = i / 24, x = -.19 + .38 * u, y = .955 - Math.sin(u * Math.PI) * .035 + (u < .08 ? (.08 - u) * .4 : 0);
+    pts.push(new THREE.Vector3(x, y, Math.sqrt(.2401 - x * x) + .006));
+  }
+  face.add(new THREE.Mesh(new THREE.TubeGeometry(new THREE.CatmullRomCurve3(pts), 40, .011, 6), black));
+}
+// wick + flame (rounded teardrop, tip curling right)
+const flameG = new THREE.Group(); body.add(flameG);
+mesh(new THREE.CylinderGeometry(.014, .016, .12, 8).translate(0, .04, 0), black, flameG, false);
+const flame = new THREE.Group(); flame.position.y = .07; flameG.add(flame);
+function bentLathe(pts, seg, bend){
+  const g = lathe(pts, seg), p = g.attributes.position, h = pts[pts.length - 1][1];
+  for (let i = 0; i < p.count; i++){ const y = p.getY(i); p.setX(i, p.getX(i) + bend * (y / h) ** 3); }
+  g.computeVertexNormals(); return g;
+}
+const flameOuter = mesh(bentLathe([[0,0],[.09,.02],[.16,.08],[.2,.17],[.2,.26],[.17,.36],[.12,.45],[.065,.54],[.02,.6],[0,.62]], 32, .18), new THREE.MeshBasicMaterial({color: 0xffd75e}), flame);
+const flameInner = new THREE.Mesh(bentLathe([[0,.03],[.06,.06],[.085,.12],[.075,.2],[.04,.28],[0,.33]], 20, .06), new THREE.MeshBasicMaterial({color: 0xfffbe8}));
+flameInner.position.z = .15; flameInner.scale.z = .4; flame.add(flameInner);
+function glowTex(){
+  const c = document.createElement('canvas'); c.width = c.height = 128; const g = c.getContext('2d');
+  const r = g.createRadialGradient(64, 64, 0, 64, 64, 64);
+  r.addColorStop(0, 'rgba(255,220,140,1)'); r.addColorStop(.35, 'rgba(255,160,60,.45)'); r.addColorStop(1, 'rgba(255,120,30,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 128, 128); return new THREE.CanvasTexture(c);
+}
+const GLOW = glowTex();
+const glow = new THREE.Sprite(new THREE.SpriteMaterial({map: GLOW, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true, opacity: .55}));
+glow.scale.set(1.4, 1.4, 1); glow.position.y = .32; flameG.add(glow);
+// blob shadow
+function blobTex(){
+  const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
+  const r = g.createRadialGradient(32, 32, 0, 32, 32, 32);
+  r.addColorStop(0, 'rgba(0,0,0,.55)'); r.addColorStop(1, 'rgba(0,0,0,0)');
+  g.fillStyle = r; g.fillRect(0, 0, 64, 64); return new THREE.CanvasTexture(c);
+}
+const BLOB = blobTex();
+const blob = new THREE.Mesh(new THREE.PlaneGeometry(1.3, 1.3), new THREE.MeshBasicMaterial({map: BLOB, transparent: true, depthWrite: false}));
+blob.rotation.x = -Math.PI / 2; blob.position.y = .01; kid.add(blob);
+
+// lights
+const amb = new THREE.HemisphereLight(0x8899ff, 0x221108, .35); scene.add(amb);
+const kidLight = new THREE.PointLight(0xffc890, 0, 9, 1.4); scene.add(kidLight);
+const fill = new THREE.DirectionalLight(0xfff0dc, 0); scene.add(fill); scene.add(fill.target);
+
+// ---------- world ----------
+const ROOM = 7.5;
+const room = new THREE.Group(); scene.add(room);
+function woodTex(){
+  const c = document.createElement('canvas'); c.width = c.height = 512; const g = c.getContext('2d');
+  for (let i = 0; i < 8; i++){
+    const y = i * 64, h = 64, base = 120 + Math.random() * 40;
+    g.fillStyle = `rgb(${base + 40},${base - 5},${base - 55})`; g.fillRect(0, y, 512, h);
+    for (let k = 0; k < 26; k++){
+      g.strokeStyle = `rgba(70,40,15,${.08 + Math.random() * .14})`; g.lineWidth = 1 + Math.random() * 2;
+      g.beginPath(); const yy = y + Math.random() * h; g.moveTo(0, yy);
+      for (let x = 0; x <= 512; x += 32) g.lineTo(x, yy + Math.sin(x * .02 + k) * 3);
+      g.stroke();
+    }
+    g.fillStyle = 'rgba(30,15,5,.8)'; g.fillRect(0, y, 512, 3);
+    g.fillRect((i * 173) % 512, y, 3, h);
+  }
+  const t = new THREE.CanvasTexture(c); t.wrapS = t.wrapT = THREE.RepeatWrapping; t.repeat.set(4, 4);
+  t.colorSpace = THREE.SRGBColorSpace; return t;
+}
+const floor = new THREE.Mesh(new THREE.PlaneGeometry(ROOM * 2 + 4, ROOM * 2 + 4), toon(0xffffff, {map: woodTex()}));
+floor.rotation.x = -Math.PI / 2; room.add(floor);
+const obstacles = [];
+function prop(geo, color, x, z, ry = 0, r = .6){
+  const m = mesh(geo, toon(color), room); m.position.set(x, 0, z); m.rotation.y = ry;
+  obstacles.push({x, z, r}); return m;
+}
+// books
+for (const [x, z, n] of [[-3.2, -2.6, 4], [4.2, 3.2, 3]]){
+  const g = new THREE.Group(); g.position.set(x, 0, z); room.add(g); obstacles.push({x, z, r: 1.1});
+  const cols = [0x3f6fb5, 0xd0a23a, 0x7b3fa0, 0x3d8f5a, 0xc0503a];
+  let y = 0;
+  for (let i = 0; i < n; i++){
+    const h = .22 + Math.random() * .1;
+    const b = mesh(new THREE.BoxGeometry(1.6 - i * .08, h, 1.1).translate(0, h / 2, 0), toon(cols[i % 5]), g);
+    b.position.y = y; b.rotation.y = (Math.random() - .5) * .4; y += h;
+  }
+}
+prop(lathe([[0,0],[.42,0],[.45,.05],[.45,.9],[.4,.9],[.38,.1],[0,.1]]), 0x5c8fd6, 2.3, -3.6, 0, .6);
+{ const h = mesh(new THREE.TorusGeometry(.2, .05, 8, 16, Math.PI), toon(0x5c8fd6), room); h.position.set(2.75, .45, -3.6); h.rotation.z = -Math.PI / 2; }
+prop(new THREE.BoxGeometry(1.3, 1.9, 1.0).translate(0, .95, 0), 0x7a4cc2, -5.2, 2.6, .3, 1.0);
+prop(new THREE.BoxGeometry(1.3, 1.9, 1.0).translate(0, .95, 0), 0x3aa0d8, -4.3, 4.6, -.2, 1.0);
+prop(new THREE.BoxGeometry(.5, .5, .5).translate(0, .25, 0), 0xf2f2f2, .8, 4.8, .6, .45);
+prop(lathe([[0,0],[.3,0],[.3,.06],[.22,.08],[.22,.5],[.3,.52],[.3,.58],[0,.58]]), 0xd9603f, 5.5, -1.2, 0, .45);
+
+// checkpoint candles
+const candles = [];
+const candleSpots = [[-1.6, -4.6], [5.4, -4.8], [5.6, 1.4], [-5.6, -.4], [1.6, 5.6]];
+const smallFlameGeo = lathe([[0,0],[.05,.02],[.075,.07],[.06,.14],[0,.24]], 16);
+for (const [x, z] of candleSpots){
+  const g = new THREE.Group(); g.position.set(x, 0, z); scene.add(g);
+  mesh(lathe([[0,0],[.18,0],[.19,.02],[.19,.5],[.16,.55],[0,.53]]), toon(0xefe3cf, {emissive: 0x000000}), g);
+  mesh(new THREE.CylinderGeometry(.24, .28, .07, 20).translate(0, .035, 0), toon(BRASS), g);
+  mesh(new THREE.CylinderGeometry(.012, .012, .1, 6).translate(0, .58, 0), black, g, false);
+  const f = mesh(smallFlameGeo, new THREE.MeshBasicMaterial({color: 0xffd75e}), g); f.position.y = .6; f.visible = false;
+  const gl = new THREE.Sprite(new THREE.SpriteMaterial({map: GLOW, blending: THREE.AdditiveBlending, depthWrite: false, transparent: true}));
+  gl.scale.set(.9, .9, 1); gl.position.y = .7; gl.visible = false; g.add(gl);
+  const L = new THREE.PointLight(0xffa64d, 0, 5, 1.5); L.position.set(x, .9, z); scene.add(L);
+  const sh = new THREE.Mesh(new THREE.PlaneGeometry(.8, .8), blob.material); sh.rotation.x = -Math.PI / 2; sh.position.y = .012; g.add(sh);
+  candles.push({g, f, gl, L, x, z, lit: false, t: Math.random() * 10});
+  obstacles.push({x, z, r: .35});
+}
+
+// ---------- audio ----------
+let AC = null;
+function audio(){ if (!AC){ try { AC = new (window.AudioContext || window.webkitAudioContext)(); } catch(e){} } if (AC && AC.state === 'suspended') AC.resume(); }
+function noise(dur, f0, f1, vol, q = 1){
+  if (!AC) return; const n = AC.sampleRate * dur | 0, b = AC.createBuffer(1, n, AC.sampleRate), d = b.getChannelData(0);
+  for (let i = 0; i < n; i++) d[i] = (Math.random() * 2 - 1) * (1 - i / n);
+  const s = AC.createBufferSource(); s.buffer = b;
+  const f = AC.createBiquadFilter(); f.type = 'bandpass'; f.Q.value = q;
+  f.frequency.setValueAtTime(f0, AC.currentTime); f.frequency.exponentialRampToValueAtTime(f1, AC.currentTime + dur);
+  const g = AC.createGain(); g.gain.value = vol; s.connect(f).connect(g).connect(AC.destination); s.start();
+}
+
+// ---------- state ----------
+const S = {
+  mode: 'title', cam: false, flame: 0, wax: 1, lit: false, matches: 4,
+  match: null, // {x,y,lit,burn,held}
+  stroke: {len: 0, t: 0}, vel: new THREE.Vector3(), joy: null, gust: null, nextGust: 14,
+  litCount: 0, t: 0, msgT: 0, reveal: 0, flare: 0, tries: 0
+};
+const ui = {box: $('box'), striker: $('striker'), match: $('match'), joy: $('joy'), msg: $('msg'), hud: $('hud')};
+function say(t, dur = 2.6){ ui.msg.textContent = t; ui.msg.classList.add('on'); S.msgT = dur; }
+function hud(){
+  $('flameBar').firstChild.style.width = (S.flame * 100) + '%';
+  $('waxBar').firstChild.style.width = (S.wax * 100) + '%';
+  $('matchCt').textContent = '🔥×' + S.matches;
+  $('candleCt').textContent = '🕯 ' + S.litCount + '/' + candles.length;
+}
+
+function reset(){
+  S.flame = 0; S.wax = 1; S.lit = false; S.matches = 4; S.litCount = 0; S.gust = null; S.nextGust = 14; S.reveal = 0;
+  kid.position.set(0, 0, 0); kid.rotation.y = 0; S.vel.set(0, 0, 0);
+  for (const c of candles){ c.lit = false; c.f.visible = c.gl.visible = false; c.L.intensity = 0; }
+  $('over').style.display = $('win').style.display = 'none';
+  ui.hud.style.display = 'flex';
+  toStrike();
+}
+function toStrike(){
+  S.mode = 'strike'; S.lit = false; S.flame = 0;
+  ui.box.classList.remove('away');
+  S.match = null;
+  setTimeout(newMatch, 500);
+  say(S.tries++ ? 'Your flame went out… strike another match' : 'Pick up a match and swipe it across the striker', 3.5);
+}
+function newMatch(){
+  if (S.matches <= 0){ return gameOver('Out of matches', 'The dark wins this time.'); }
+  const r = ui.box.getBoundingClientRect();
+  S.match = {x: r.left + r.width / 2 - 50, y: r.top - 30, ang: -90, lit: false, burn: 0, held: false, rest: true};
+  ui.match.style.display = 'block'; ui.match.classList.remove('lit');
+  ui.match.querySelector('.burnt').style.height = '0px';
+}
+function gameOver(t, p){
+  S.mode = 'over'; $('overT').textContent = t; $('overP').textContent = p;
+  $('over').style.display = 'flex'; ui.match.style.display = 'none'; ui.box.classList.add('away');
+}
+
+// ---------- input ----------
+const uiEl = $('ui');
+let pid = null, grabOff = {x: 0, y: 0}, last = {x: 0, y: 0, t: 0};
+uiEl.addEventListener('pointerdown', e => {
+  if (e.target.closest('.btn')) return;
+  audio();
+  if (S.mode === 'strike' && S.match){
+    const m = S.match;
+    const near = Math.hypot(e.clientX - m.x, e.clientY - m.y) < 90 || e.target.closest('#match');
+    if (near){
+      pid = e.pointerId; m.held = true; m.rest = false; m.ang = -18;
+      grabOff = {x: -18, y: -95}; // match head sits above-left of the finger
+      m.x = e.clientX + grabOff.x; m.y = e.clientY + grabOff.y;
+      last = {x: m.x, y: m.y, t: performance.now()};
+      if (!m.lit) say('Now swipe it fast across the striker!', 2.5);
+    }
+  } else if (S.mode === 'play'){
+    pid = e.pointerId; S.joy = {ox: e.clientX, oy: e.clientY, dx: 0, dy: 0};
+    ui.joy.style.display = 'block'; ui.joy.style.left = e.clientX + 'px'; ui.joy.style.top = e.clientY + 'px';
+    ui.joy.firstChild.style.transform = '';
+  }
+});
+addEventListener('pointermove', e => {
+  if (e.pointerId !== pid) return;
+  if (S.mode === 'strike' && S.match && S.match.held){
+    const m = S.match, now = performance.now();
+    m.x = e.clientX + grabOff.x; m.y = e.clientY + grabOff.y;
+    const dt = Math.max(1, now - last.t), dx = m.x - last.x, dy = m.y - last.y;
+    if (!m.lit) strikeCheck(m, dx, dy, dt);
+    last = {x: m.x, y: m.y, t: now};
+  } else if (S.mode === 'play' && S.joy){
+    let dx = e.clientX - S.joy.ox, dy = e.clientY - S.joy.oy; const l = Math.hypot(dx, dy), max = 50;
+    if (l > max){ dx *= max / l; dy *= max / l; }
+    S.joy.dx = dx / max; S.joy.dy = dy / max;
+    ui.joy.firstChild.style.transform = `translate(${dx}px,${dy}px)`;
+  }
+});
+function up(e){
+  if (e.pointerId !== pid) return; pid = null;
+  if (S.match) S.match.held = false;
+  S.joy = null; ui.joy.style.display = 'none';
+  ui.striker.classList.remove('hot');
+}
+addEventListener('pointerup', up); addEventListener('pointercancel', up);
+
+function strikeCheck(m, dx, dy, dt){
+  const r = ui.striker.getBoundingClientRect();
+  const hx = m.x + 8, hy = m.y + 8; // head centre
+  const inside = hx > r.left - 6 && hx < r.right + 6 && hy > r.top - 14 && hy < r.bottom + 14;
+  if (!inside){ S.stroke.len = 0; S.stroke.t = 0; ui.striker.classList.remove('hot'); return; }
+  ui.striker.classList.add('hot');
+  S.stroke.len += Math.abs(dx); S.stroke.t += dt;
+  const sp = Math.abs(dx) / dt;
+  if (sp > .25) sparks(hx, hy, Math.min(10, sp * 6), dx > 0 ? 1 : -1);
+  if (sp > .3 && Math.random() < .25) noise(.06, 2500, 1800, .25, 2);
+  if (S.stroke.len > 70){
+    const avg = S.stroke.len / S.stroke.t; // px per ms
+    S.stroke.len = 0; S.stroke.t = 0;
+    if (avg > .9){ ignite(m, hx, hy); }
+    else if (avg > .4){ say('Almost! Faster!', 1.4); noise(.12, 2600, 1500, .4, 2); }
+    else say('Too slow — swipe it fast', 1.6);
+  }
+}
+function ignite(m, x, y){
+  m.lit = true; m.burn = 0; ui.match.classList.add('lit');
+  ui.striker.classList.remove('hot');
+  for (let i = 0; i < 40; i++) sparks(x, y, 1, Math.random() < .5 ? 1 : -1, true);
+  noise(.5, 3000, 300, .7, .7);
+  S.flare = 1;
+  say('Quick — bring the flame to his wick!', 3);
+}
+
+// ---------- particles ----------
+const parts = [];
+function sparks(x, y, n, dir, burst){
+  for (let i = 0; i < n; i++) parts.push({
+    x, y, vx: (burst ? (Math.random() - .5) * 9 : dir * (2 + Math.random() * 5)), vy: -Math.random() * 6 - (burst ? 2 : 0),
+    life: .4 + Math.random() * .5, max: .9, s: 1 + Math.random() * 2.5
+  });
+}
+const wind = [];
+
+// ---------- helpers ----------
+const v3 = new THREE.Vector3();
+function toScreen(p){ v3.copy(p).project(camera); return {x: (v3.x * .5 + .5) * W, y: (-v3.y * .5 + .5) * H, z: v3.z}; }
+function worldRadiusPx(p, r){
+  const a = toScreen(p); const right = new THREE.Vector3().setFromMatrixColumn(camera.matrixWorld, 0);
+  const b = toScreen(p.clone().addScaledVector(right, r)); return Math.hypot(b.x - a.x, b.y - a.y);
+}
+const wickWorld = new THREE.Vector3(), flameWorld = new THREE.Vector3();
+
+// ---------- start buttons ----------
+async function start(useCam){
+  audio();
+  $('title').style.display = 'none';
+  S.cam = false;
+  if (useCam){
+    try {
+      const st = await navigator.mediaDevices.getUserMedia({video: {facingMode: 'environment'}, audio: false});
+      video.srcObject = st; await video.play(); video.style.display = 'block'; S.cam = true;
+    } catch(e){ say("Camera isn't available here — using the demo room", 3.5); }
+  }
+  room.visible = !S.cam;
+  renderer.setClearColor(0x000000, S.cam ? 0 : 1);
+  S.tries = 0; reset();
+}
+$('btnCam').onclick = () => start(true);
+$('btnRoom').onclick = () => start(false);
+$('btnAgain').onclick = $('btnAgain2').onclick = () => { S.tries = 0; reset(); };
+if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia) $('camNote').textContent = 'No camera access in this view — open the page in Safari or Chrome directly for the camera mode.';
+
+// ---------- loop ----------
+let prev = performance.now();
+function frame(now){
+  const dt = Math.min(.05, (now - prev) / 1000); prev = now; S.t += dt;
+  update(dt); render(dt);
+  requestAnimationFrame(frame);
+}
+requestAnimationFrame(frame);
+
+const tmp = new THREE.Vector3();
+function update(dt){
+  const t = S.t;
+  if (S.msgT > 0){ S.msgT -= dt; if (S.msgT <= 0) ui.msg.classList.remove('on'); }
+  S.flare = Math.max(0, S.flare - dt * 1.5);
+
+  // --- movement ---
+  let moving = 0;
+  if (S.mode === 'play'){
+    const j = S.joy;
+    const want = new THREE.Vector3(j ? j.dx : 0, 0, j ? j.dy : 0);
+    const mag = Math.min(1, want.length());
+    S.vel.lerp(want.multiplyScalar(2.6), Math.min(1, dt * 8));
+    moving = S.vel.length() / 2.6;
+    kid.position.addScaledVector(S.vel, dt);
+    for (const o of obstacles){
+      const dx = kid.position.x - o.x, dz = kid.position.z - o.z, d = Math.hypot(dx, dz), m = o.r + .45;
+      if (d < m && d > 1e-4){ kid.position.x = o.x + dx / d * m; kid.position.z = o.z + dz / d * m; }
+    }
+    kid.position.x = THREE.MathUtils.clamp(kid.position.x, -ROOM, ROOM);
+    kid.position.z = THREE.MathUtils.clamp(kid.position.z, -ROOM, ROOM);
+    if (mag > .1){
+      const target = Math.atan2(S.vel.x, S.vel.z);
+      let d = target - kid.rotation.y; d = Math.atan2(Math.sin(d), Math.cos(d));
+      kid.rotation.y += d * Math.min(1, dt * 10);
+    }
+    // gusts
+    S.nextGust -= dt;
+    if (!S.gust && S.nextGust <= 0){ S.gust = {t: 3.2, dir: Math.random() < .5 ? -1 : 1}; say('Wind! Stand still to shelter your flame', 2.8); noise(3, 400, 250, .35, .5); }
+    if (S.gust){ S.gust.t -= dt; if (S.gust.t <= 0){ S.gust = null; S.nextGust = 10 + Math.random() * 10; } }
+    // flame + wax
+    let drain = .012 + moving * .02;
+    if (S.gust) drain += .03 + moving * .17;
+    S.flame = Math.max(0, S.flame - drain * dt);
+    S.wax = Math.max(0, S.wax - dt * (.004 + .01 * S.flame));
+    // candles
+    for (const c of candles){
+      if (!c.lit && Math.hypot(kid.position.x - c.x, kid.position.z - c.z) < 1.0){
+        c.lit = true; c.f.visible = c.gl.visible = true; S.litCount++;
+        S.flame = 1; S.flare = .8; noise(.4, 1500, 400, .5, .8);
+        say(S.litCount < candles.length ? 'Candle lit! Flame restored' : 'Every candle is lit!', 2);
+      }
+    }
+    if (S.litCount === candles.length){ S.mode = 'won'; ui.box.classList.add('away'); setTimeout(() => { $('winP').textContent = `You found all ${candles.length} candles with ${Math.round(S.wax * 100)}% wax left.`; $('win').style.display = 'flex'; }, 1800); }
+    else if (S.wax <= 0) gameOver('Melted away', 'Your wax ran out. A brighter flame burns faster!');
+    else if (S.flame <= .02){ S.flame = 0; S.lit = false; noise(.6, 600, 150, .4, .6); toStrike(); }
+  }
+  if (S.mode === 'won') S.reveal = Math.min(1, S.reveal + dt * .4);
+
+  // --- match ---
+  if (S.mode === 'strike' && S.match){
+    const m = S.match;
+    if (m.lit){
+      m.burn += dt / 11;
+      ui.match.querySelector('.burnt').style.height = Math.min(100, m.burn * 100) + 'px';
+      // reach wick?
+      const w = toScreen(wickWorld);
+      if (Math.hypot(m.x + 8 - w.x, m.y - 8 - w.y) < 46){
+        S.lit = true; S.flame = .15; S.mode = 'play'; S.flare = 1;
+        S.matches--; ui.match.style.display = 'none'; S.match = null; ui.box.classList.add('away');
+        noise(.7, 900, 200, .6, .6);
+        say(S.tries > 1 ? 'Lit again! Keep going' : 'He’s lit! Drag anywhere to walk. Find the other candles.', 3.5);
+      } else if (m.burn >= 1){
+        S.matches--; say('Ouch! The match burned out', 2); S.match = null; ui.match.style.display = 'none';
+        setTimeout(() => { if (S.mode === 'strike') newMatch(); }, 600);
+      }
+    }
+    if (m && !m.held && m.rest){
+      const r = ui.box.getBoundingClientRect(); m.x = r.left + r.width / 2 - 60; m.y = r.top - 26;
+    }
+    if (S.match){
+      ui.match.style.transform = `translate(${m.x}px,${m.y}px) rotate(${m.ang}deg)`;
+    }
+  }
+  if (S.lit && S.mode === 'play') S.flame = Math.min(1, S.flame + dt * (S.flame < .9 && S.flare > 0 ? 1.6 : 0)); // initial grow-in
+
+  // --- animate kid ---
+  const ph = t * 11;
+  const walk = Math.min(1, moving * 1.4);
+  body.position.y = Math.abs(Math.sin(ph)) * .05 * walk + Math.sin(t * 2) * .008;
+  body.rotation.z = Math.sin(ph) * .09 * walk;
+  feet[0].position.z = Math.sin(ph) * .16 * walk; feet[1].position.z = -Math.sin(ph) * .16 * walk;
+  feet[0].position.y = Math.max(0, Math.sin(ph)) * .07 * walk; feet[1].position.y = Math.max(0, -Math.sin(ph)) * .07 * walk;
+  const ws = .62 + .38 * S.wax; waxG.scale.y = ws;
+  flameG.position.y = WAX_BASE + WAX_H * ws - .02;
+  const blink = (t % 3.7) < .11 ? .15 : 1; eyes.forEach(e => e.scale.y = 1.5 * blink);
+  // flame shape
+  const f = S.lit ? S.flame : 0;
+  flame.visible = f > 0; glow.visible = f > 0 && !S.studio;
+  const flick = .9 + .1 * Math.sin(t * 23) * Math.sin(t * 7.3) + (S.gust ? .15 * Math.sin(t * 40) : 0);
+  const fs = (.4 + .6 * f) * (1 + S.flare * .4);
+  flame.scale.set(fs, fs * flick, fs);
+  const lean = new THREE.Vector3(-S.vel.x * .12 + (S.gust ? S.gust.dir * .5 : 0), 0, -S.vel.z * .12);
+  lean.applyAxisAngle(new THREE.Vector3(0, 1, 0), -kid.rotation.y);
+  flame.rotation.z = THREE.MathUtils.lerp(flame.rotation.z, -lean.x, .2);
+  flame.rotation.x = THREE.MathUtils.lerp(flame.rotation.x, lean.z, .2);
+  glow.scale.setScalar((.8 + 1.6 * f) * flick);
+  waxMat.emissive.setRGB(.1 * f, .06 * f, .02 * f);
+  brassMat.emissive.setRGB(.04 + .03 * f, .02 + .015 * f, 0);
+  // world positions
+  kid.updateMatrixWorld(true);
+  wickWorld.set(0, .14, 0); flameG.localToWorld(wickWorld);
+  flameWorld.set(0, .3, 0); flameG.localToWorld(flameWorld);
+  kidLight.position.copy(flameWorld);
+  kidLight.intensity = S.studioLight ? 0 : (1.5 + f * 4) * flick + S.flare * 4;
+  kidLight.distance = 2.5 + f * 4.5;
+  fill.intensity = S.studioLight ? 1.6 : .25 + f * .6;
+  fill.position.copy(kid.position).add(tmp.set(0, 3, 4)); fill.target.position.copy(kid.position);
+  for (const c of candles){
+    if (c.lit){ c.t += dt; const k = .9 + .1 * Math.sin(c.t * 19) * Math.sin(c.t * 5.7); c.f.scale.set(1, k, 1); c.gl.scale.setScalar(.9 * k); c.L.intensity = 3.5 * k; }
+  }
+  if (!S.studio) amb.intensity = S.cam ? .9 : .25 + S.reveal * 1.2;
+
+  // --- camera follow ---
+  if (S.studio){ hud(); return; }
+  const target = tmp.copy(kid.position).add(new THREE.Vector3(0, 3.6, 9.5));
+  if (S.mode === 'title') target.set(0, 3.6, 9.5);
+  camera.position.lerp(target, Math.min(1, dt * 3));
+  camera.lookAt(kid.position.x, kid.position.y + 0.9, kid.position.z - 0.6);
+  camera.updateMatrixWorld();
+  hud();
+}
+
+function render(dt){
+  renderer.render(scene, camera);
+  // darkness
+  dctx.globalCompositeOperation = 'source-over';
+  dctx.clearRect(0, 0, W, H);
+  if (S.mode === 'title' || S.studio) return;
+  const base = S.cam ? .965 : .985;
+  dctx.fillStyle = `rgba(3,2,8,${base * (1 - S.reveal)})`; dctx.fillRect(0, 0, W, H);
+  const lights = [];
+  const flick = .94 + .06 * Math.sin(S.t * 17) * Math.sin(S.t * 6.1);
+  const kp = kid.position.clone().add(new THREE.Vector3(0, 1.1, 0));
+  const ks = toScreen(kp);
+  if (S.lit){
+    const R = worldRadiusPx(kp, (.8 + 2.4 * S.flame) * (1 + S.flare * .3)) * flick;
+    lights.push({x: ks.x, y: ks.y, r: R, a: 1});
+  } else lights.push({x: ks.x, y: ks.y, r: worldRadiusPx(kp, 1.1), a: .28});
+  for (const c of candles) if (c.lit){
+    const p = new THREE.Vector3(c.x, .5, c.z), s = toScreen(p);
+    if (s.z < 1) lights.push({x: s.x, y: s.y, r: worldRadiusPx(p, 1.9) * (.95 + .05 * Math.sin(c.t * 13)), a: .95});
+  }
+  if (S.match && S.match.lit){
+    lights.push({x: S.match.x + 8, y: S.match.y - 14, r: (150 + 30 * S.flare) * flick * (1 - S.match.burn * .4), a: .95});
+  }
+  dctx.globalCompositeOperation = 'destination-out';
+  for (const L of lights){
+    const g = dctx.createRadialGradient(L.x, L.y, 0, L.x, L.y, L.r);
+    g.addColorStop(0, `rgba(0,0,0,${L.a})`); g.addColorStop(.5, `rgba(0,0,0,${L.a * .82})`); g.addColorStop(1, 'rgba(0,0,0,0)');
+    dctx.fillStyle = g; dctx.beginPath(); dctx.arc(L.x, L.y, L.r, 0, Math.PI * 2); dctx.fill();
+  }
+  // warm tint
+  dctx.globalCompositeOperation = 'source-over';
+  for (const L of lights){
+    if (L.a < .5) continue;
+    const g = dctx.createRadialGradient(L.x, L.y, 0, L.x, L.y, L.r);
+    g.addColorStop(0, `rgba(255,170,70,${S.cam ? .22 : .12})`); g.addColorStop(1, 'rgba(255,120,40,0)');
+    dctx.fillStyle = g; dctx.beginPath(); dctx.arc(L.x, L.y, L.r, 0, Math.PI * 2); dctx.fill();
+  }
+
+  // fx: sparks + wind
+  fctx.clearRect(0, 0, W, H);
+  fctx.globalCompositeOperation = 'lighter';
+  for (let i = parts.length - 1; i >= 0; i--){
+    const p = parts[i]; p.life -= dt; if (p.life <= 0){ parts.splice(i, 1); continue; }
+    p.x += p.vx; p.y += p.vy; p.vy += .35;
+    fctx.fillStyle = `rgba(255,${180 + Math.random() * 60 | 0},90,${p.life / p.max})`;
+    fctx.beginPath(); fctx.arc(p.x, p.y, p.s, 0, 6.3); fctx.fill();
+  }
+  fctx.globalCompositeOperation = 'source-over';
+  if (S.gust){
+    if (Math.random() < .6) wind.push({x: S.gust.dir > 0 ? -100 : W + 100, y: Math.random() * H, l: 60 + Math.random() * 120, v: 900 + Math.random() * 600});
+  }
+  fctx.strokeStyle = 'rgba(220,230,255,.35)'; fctx.lineWidth = 2; fctx.lineCap = 'round';
+  for (let i = wind.length - 1; i >= 0; i--){
+    const w = wind[i], d = S.gust ? S.gust.dir : (w.v > 0 ? 1 : -1);
+    w.x += d * w.v * dt;
+    if (w.x < -300 || w.x > W + 300){ wind.splice(i, 1); continue; }
+    fctx.beginPath(); fctx.moveTo(w.x, w.y); fctx.quadraticCurveTo(w.x - d * w.l / 2, w.y - 6, w.x - d * w.l, w.y); fctx.stroke();
+  }
+}
+window.__g = {S, kid, camera, candles, start, ignite, studio(view, ref){
+  S.studio = true; S.mode = 'studio'; S.lit = true; S.flame = 1; S.flare = 0; room.visible = false; S.cam = false;
+  for (const el of ['title','hud','box','match','msg']) $(el).style.display = 'none';
+  renderer.setClearColor(0xffffff, 1); glow.visible = false; S.studioLight = true;
+  const a = {front: 0, side: Math.PI / 2, back: Math.PI, q: Math.PI / 4}[view] || 0, d = 14;
+  camera.fov = 11; camera.updateProjectionMatrix();
+  camera.position.set(Math.sin(a) * d, 1.25, Math.cos(a) * d); camera.lookAt(0, 1.18, 0);
+  kid.rotation.y = 0; kid.position.set(0, 0, 0); amb.intensity = 1.4; amb.color.set(0xffffff); amb.groundColor.set(0x887766);
+}};
+</script>
+</body>
+</html>

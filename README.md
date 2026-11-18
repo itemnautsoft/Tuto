@@ -60,6 +60,14 @@ On Android Chrome he's tracked on your real floor (WebXR), so you can walk aroun
 
 Built with [three.js](https://threejs.org/). Everything is in `index.html`.
 
+## Candle Kid (prototype)
+
+A little candle kid in the dark. Pick up a match, swipe it fast across the striker, and light the wick on his head. The circle of light around him grows and shrinks with his flame. Drag anywhere to walk him around and find the 5 other candles before the flame goes out or his wax melts away. Watch out for gusts of wind (stand still to shelter the flame).
+
+**Play it:** https://itemnautsoft.github.io/Tuto/candle/
+
+Choose **Play with camera** to put the darkness over your phone's camera view, or **Play in demo room** for a built-in room. It lives in the `candle/` folder.
+
 ## Sid Dash
 
 A 3D endless runner by the Trouble Makers. Swipe left/right to change lanes, swipe up to jump & flip, and collect all 3 stars to reach the next stage.
