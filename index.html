@@ -47,6 +47,10 @@
     background:rgba(255,255,255,.55); border:4px solid #141018; padding:0; touch-action:none; }
   #fire.on { background:#FF7A2F; transform:scale(1.06); }
   body.trooper:not(.m-maker):not(.m-jam):not(.m-mocap):not(.m-frame):not(.intro) #fire { display:flex; }
+  #wing { position:fixed; right:128px; bottom:200px; width:70px; height:70px; z-index:4; border-radius:50%; display:none; align-items:center; justify-content:center;
+    background:rgba(255,255,255,.6); border:4px solid #141018; padding:0; touch-action:none; }
+  #wing.show { display:flex; } #wing.on { background:#AEE6CF; }
+  body.m-maker #wing, body.m-jam #wing, body.m-mocap #wing, body.m-frame #wing, body.intro #wing { display:none !important; }
   @keyframes actpulse { 50% { transform: scale(1.08); } }
   #roomChip { position:fixed; top:18px; left:14px; z-index:4; font:inherit; font-size:17px;
     padding:4px 14px; border:3px solid #161216; border-radius:14px; color:#161216; white-space:nowrap; }
@@ -249,6 +253,7 @@
 <button id="mp" aria-label="Play together"><svg viewBox="0 0 48 40" width="30" height="26"><circle cx="17" cy="14" r="8" fill="#FDBA1C" stroke="#161216" stroke-width="3.5"/><circle cx="33" cy="16" r="7" fill="#7ED6A8" stroke="#161216" stroke-width="3.5"/><path d="M4 36 q13-16 26 0 M24 36 q10-13 21 0" fill="none" stroke="#161216" stroke-width="3.5" stroke-linecap="round"/></svg></button>
 <button id="act" aria-label="Pick up / throw"><svg class="i-grab" viewBox="0 0 48 48" width="38" height="38"><rect x="12" y="8" width="22" height="28" rx="11" fill="#E8502E" stroke="#141018" stroke-width="4"/><ellipse cx="35" cy="24" rx="6" ry="8.5" transform="rotate(28 35 24)" fill="#E8502E" stroke="#141018" stroke-width="4"/><rect x="13" y="34" width="20" height="8" rx="2" fill="#E8502E" stroke="#141018" stroke-width="4"/></svg><svg class="i-throw" viewBox="0 0 48 48" width="38" height="38"><path d="M10 38 Q10 12 34 12" fill="none" stroke="#141018" stroke-width="6" stroke-linecap="round"/><path d="M27 5 L36 12 L27 19" fill="none" stroke="#141018" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 <button id="fire" aria-label="Fire"><svg viewBox="0 0 48 32" width="44" height="30"><rect x="3" y="6" width="34" height="14" rx="2" fill="#1B1820" stroke="#141018" stroke-width="3"/><rect x="36" y="9" width="9" height="8" rx="2" fill="#4F4A5C" stroke="#141018" stroke-width="3"/><rect x="12" y="19" width="8" height="10" rx="1" fill="#1B1820" stroke="#141018" stroke-width="3"/></svg></button>
+<button id="wing" aria-label="Wings"><svg viewBox="0 0 48 32" width="46" height="30"><path d="M24 20 C16 6 6 4 2 8 C6 12 10 18 24 22Z" fill="#FBF5E8" stroke="#141018" stroke-width="3" stroke-linejoin="round"/><path d="M24 20 C32 6 42 4 46 8 C42 12 38 18 24 22Z" fill="#FBF5E8" stroke="#141018" stroke-width="3" stroke-linejoin="round"/><circle cx="24" cy="21" r="4" fill="#F4D452" stroke="#141018" stroke-width="3"/></svg></button>
 <div id="roomChip" hidden></div>
 <div id="mpPanel" hidden data-state="out">
   <div class="mp-card">
@@ -1529,7 +1534,7 @@ function upsertRemote(id, st, idx) {
 }
 function removeRemote(id) {
   const rp = Net.remotes.get(id); if (!rp) return;
-  scene.remove(rp.ch.root, rp.shadow, rp.label); Net.remotes.delete(id);
+  scene.remove(rp.ch.root, rp.shadow, rp.label); if (rp.veh) scene.remove(rp.veh.root); Net.remotes.delete(id);
   for (const d of dinos) if (d.remote === id) { d.remote = null; d.tgt = null; }
 }
 // work out the host, colours, other players and who owns which dinosaur
@@ -1583,6 +1588,7 @@ function applyNet(dt) {
     rp.shadow.position.copy(rp.up).multiplyScalar(R + 0.04);
     rp.shadow.quaternion.setFromUnitVectors(tmpV2.set(0, 0, 1), rp.up);
     rp.label.position.copy(rp.up).multiplyScalar(R + rp.h + 2.1 + (a[8] > 0.5 ? 1.6 : 0));
+    vehRemote(rp, st, dt);
   }
 }
 function buildSnap() {
@@ -1594,6 +1600,7 @@ function buildSnap() {
     carry: holding && holding.kind === 'player' ? holding.id : null, hb: heldBy, thr: lastThrow,
     own: dinos.filter(d => d.local).map(dinoPose) };
   if (trooper) { s.tr = 1; s.fr = lastFire; }
+  if (drive) s.veh = vehSnap();
   if (lastKb) s.kb = lastKb;
   if (modeKind === 'jam') { s.vis = 0; s.jam = jmSnap(); }
   const rel = dinos.filter(d => !d.local && d.relT && simT - d.relT < 2500).map(d => [...dinoPose(d), Math.round(d.relT)]);
@@ -1815,6 +1822,324 @@ function dismount(jump, dir) {
   lastRide = d; remountAfter = simT + 900;
 }
 const NOSE_OBS = { p: FACE_DIR, a: NOSE_AX + 0.08 };
+// ======================= VEHICLES =======================
+// A motorcycle and a hover pod parked on the planet. Walk up and press the hand button to get in, jump to hop out.
+// The pod grows wings (wing button) and flies anywhere, including to the water planet, where it turns into a submarine.
+const VC = { yel: 0xF4D452, lime: 0xD9F24E, red: 0xEA4E66, mint: 0xAEE6CF, lens: 0x9ED6F2, grey: 0xB9B8C0, pit: 0xE8706A, wing: 0xFBF5E8, dome: 0x4EA6E8, ink: 0x161216 };
+const vNol = m => { m.userData.outlineParameters = { visible: false }; return m; };
+const vMesh = (geo, col, parent, x = 0, y = 0, z = 0, ol = true) => { const m = mesh(geo, col, ol); m.position.set(x, y, z); parent.add(m); return m; };
+const vGlass = (geo, col, op, parent) => { const m = new THREE.Mesh(geo, vNol(new THREE.MeshToonMaterial({ color: col, gradientMap: ramp, transparent: true, opacity: op, depthWrite: false }))); parent.add(m); return m; };
+function buildMoto() {
+  const g = new THREE.Group(), wheels = [];
+  for (const z of [0.66, -0.64]) {
+    const w = new THREE.Group(); w.position.set(0, 0.4, z); g.add(w);
+    vMesh(new THREE.CylinderGeometry(0.4, 0.4, 0.36, 22).rotateZ(Math.PI / 2), VC.lime, w);
+    vMesh(new THREE.CylinderGeometry(0.17, 0.17, 0.4, 14).rotateZ(Math.PI / 2), VC.yel, w);
+    for (let i = 0; i < 4; i++) { const n = vMesh(new THREE.BoxGeometry(0.38, 0.07, 0.05), 0xB8D23A, w, 0, 0, 0, false); n.rotation.x = i * Math.PI / 4; n.position.y = 0; n.scale.z = 1; n.translateY(0.385); }
+    wheels.push(w);
+  }
+  const body = vMesh(new THREE.CapsuleGeometry(0.32, 0.9, 6, 16).rotateX(Math.PI / 2), VC.yel, g, 0, 0.76, 0); body.scale.set(1, 0.9, 1);
+  vMesh(new THREE.SphereGeometry(0.4, 22, 16), VC.yel, g, 0, 0.92, 0.72).scale.set(0.95, 0.9, 0.9);
+  for (const z of [0.66, -0.64]) { const f = vMesh(new THREE.CylinderGeometry(0.47, 0.47, 0.42, 22, 1, true, -Math.PI / 2, Math.PI).rotateZ(Math.PI / 2), VC.yel, g, 0, 0.4, z); f.material = f.material.clone(); f.material.side = THREE.DoubleSide; }
+  vMesh(new THREE.TorusGeometry(0.17, 0.05, 8, 20), 0xFFF8EC, g, 0, 0.98, 1.06);
+  vMesh(new THREE.CircleGeometry(0.15, 20), VC.lens, g, 0, 0.98, 1.075, false);
+  const seat = vMesh(new RoundedBoxGeometry(0.42, 0.16, 0.74, 3, 0.07), VC.red, g, 0, 1.06, -0.12);
+  vMesh(new RoundedBoxGeometry(0.34, 0.1, 0.4, 3, 0.04), 0xF59AA2, g, 0, 1.14, -0.2);
+  const fin = vMesh(new THREE.SphereGeometry(0.3, 16, 12), VC.yel, g, 0, 1.12, -0.74); fin.scale.set(0.55, 1, 0.75); fin.rotation.x = -0.5;
+  for (const s of [-1, 1]) { vMesh(new THREE.SphereGeometry(0.12, 12, 10), VC.red, g, 0.33 * s, 0.74, 0.25); vMesh(new THREE.SphereGeometry(0.11, 12, 10), VC.red, g, 0.31 * s, 0.82, -0.56); }
+  const bar = new THREE.CatmullRomCurve3([new THREE.Vector3(-0.42, 0.64, -0.3), new THREE.Vector3(-0.46, 0.96, -0.62), new THREE.Vector3(-0.4, 1.06, -0.95)]);
+  vMesh(new THREE.TubeGeometry(bar, 12, 0.07, 8), VC.grey, g);
+  const hb = new THREE.CatmullRomCurve3([new THREE.Vector3(-0.42, 1.28, 0.42), new THREE.Vector3(0, 1.12, 0.62), new THREE.Vector3(0.42, 1.28, 0.42)]);
+  vMesh(new THREE.TubeGeometry(hb, 12, 0.04, 6), VC.grey, g);
+  for (const s of [-1, 1]) vMesh(new THREE.CapsuleGeometry(0.055, 0.1, 4, 8).rotateZ(Math.PI / 2), 0x2A2630, g, 0.47 * s, 1.29, 0.42);
+  return { root: g, wheels, seat: 0.66, kind: 'moto' };
+}
+function podShell(g) {   // the egg with the open cockpit
+  const cut = 0.62, geo = new THREE.SphereGeometry(0.78, 30, 20, 0, Math.PI * 2, cut, Math.PI - cut);
+  const shell = vMesh(geo, VC.yel, g, 0, 0.72, 0); shell.scale.set(1, 0.78, 1.18);
+  const inner = new THREE.Mesh(geo, toon(VC.pit)); inner.material = inner.material.clone(); inner.material.side = THREE.BackSide; inner.userData.outlineParameters = { visible: false };
+  inner.position.copy(shell.position); inner.scale.copy(shell.scale).multiplyScalar(0.985); g.add(inner);
+  const rim = vMesh(new THREE.TorusGeometry(0.78 * Math.sin(cut), 0.06, 8, 30).rotateX(Math.PI / 2), VC.yel, g, 0, 0.72 + 0.78 * Math.cos(cut) * 0.78, 0); rim.scale.set(1, 1, 1.18);
+  vMesh(new THREE.SphereGeometry(0.24, 16, 12), VC.red, g, 0, 0.42, 0.92);
+  for (const s of [-1, 1]) vMesh(new THREE.SphereGeometry(0.17, 14, 10), VC.lime, g, 0.79 * s, 0.82, 0.1);
+  return shell;
+}
+function buildPod() {
+  const g = new THREE.Group(), pod = new THREE.Group(), sub = new THREE.Group(); g.add(pod, sub);
+  podShell(pod);
+  const ws = vGlass(new THREE.SphereGeometry(0.42, 22, 12, -Math.PI / 2, Math.PI, 0, Math.PI / 2), VC.mint, 0.75, pod); ws.position.set(0, 1.06, 0.48); ws.scale.set(1.2, 1.0, 0.75);
+  const ant = new THREE.CatmullRomCurve3([new THREE.Vector3(0, 1.0, -0.7), new THREE.Vector3(0.02, 1.5, -0.82), new THREE.Vector3(0.05, 2.1, -0.78)]);
+  vMesh(new THREE.TubeGeometry(ant, 10, 0.035, 6), VC.lime, pod);
+  const wings = [];
+  for (const s of [-1, 1]) {
+    const piv = new THREE.Group(); piv.position.set(0.84 * s, 0.98, -0.05); pod.add(piv);
+    const w = vMesh(new THREE.SphereGeometry(0.5, 18, 12), VC.wing, piv, 0.55 * s, 0.12, -0.08); w.scale.set(1.25, 0.16, 0.62); w.rotation.set(0.2, 0.35 * s, 0.25 * s);
+    piv.scale.setScalar(0.001); wings.push(piv);
+  }
+  // submarine body
+  const sh = vMesh(new THREE.SphereGeometry(0.8, 30, 20), VC.yel, sub, 0, 0.72, 0); sh.scale.set(1, 0.82, 1.22);
+  const dome = vMesh(new THREE.SphereGeometry(0.83, 30, 16, 0, Math.PI * 2, 0, Math.PI * 0.42), VC.dome, sub, 0, 0.72, -0.05); dome.scale.set(1, 0.86, 1.22);
+  const win = vGlass(new THREE.SphereGeometry(0.7, 24, 14, -Math.PI / 2, Math.PI, Math.PI * 0.22, Math.PI * 0.4), VC.mint, 0.92, sub); win.position.set(0, 0.68, 0.16); win.scale.set(1.0, 0.9, 1.25);
+  for (const s of [-1, 1]) {
+    vMesh(new THREE.TorusGeometry(0.075, 0.025, 6, 14), 0x6A9C8A, sub, 0.2 * s, 0.98, 0.98, false).rotation.x = -0.4;
+    vMesh(new THREE.SphereGeometry(0.06, 10, 8), 0x3F6D5E, sub, 0.2 * s, 0.97, 0.99, false);
+    vMesh(new THREE.SphereGeometry(0.16, 14, 10), VC.lime, sub, 0.8 * s, 0.82, 0.25);
+    const sk = vMesh(new THREE.CapsuleGeometry(0.13, 0.9, 6, 12).rotateX(Math.PI / 2), VC.red, sub, 0.46 * s, 0.13, 0.12); sk.rotation.z = 0.25 * s;
+  }
+  vMesh(new THREE.SphereGeometry(0.06, 10, 8), 0x3F6D5E, sub, 0.42, 0.72, 1.0, false);
+  vMesh(new THREE.SphereGeometry(0.26, 16, 12), VC.red, sub, 0, 0.5, 1.08);
+  const tube = vMesh(new THREE.CylinderGeometry(0.52, 0.48, 0.7, 24, 1, true).rotateX(Math.PI / 2), VC.red, sub, 0, 0.86, -1.05); tube.material = tube.material.clone(); tube.material.side = THREE.DoubleSide;
+  vMesh(new THREE.TorusGeometry(0.52, 0.05, 8, 26), VC.red, sub, 0, 0.86, -1.4);
+  const prop = new THREE.Group(); prop.position.set(0, 0.86, -1.1); sub.add(prop);
+  for (let i = 0; i < 3; i++) { const b = vMesh(new THREE.BoxGeometry(0.12, 0.42, 0.03), VC.yel, prop, 0, 0, 0); b.rotation.z = i * Math.PI * 2 / 3; b.translateY(0.2); }
+  sub.visible = false;
+  return { root: g, pod, sub, wings, prop, seat: 0.3, kind: 'pod', wingAmt: 0 };
+}
+function vShadow() { const s = new THREE.Mesh(new THREE.CircleGeometry(1, 24), vNol(new THREE.MeshBasicMaterial({ color: 0, transparent: true, opacity: 0.22, depthWrite: false }))); scene.add(s); return s; }
+const VEHS = [], V_SCALE = 0.85;
+function parkVehicle(v, u, f) {
+  v.up = u.clone().normalize(); v.facing = f.clone(); v.facing.addScaledVector(v.up, -v.facing.dot(v.up)).normalize();
+  v.root.position.copy(v.up).multiplyScalar(R + (v.kind === 'pod' ? 0.35 : 0)); const x = tmpV2.copy(v.up).cross(v.facing).normalize();
+  basis.makeBasis(x, v.up, v.facing); v.root.quaternion.setFromRotationMatrix(basis); v.root.scale.setScalar(v.scale);
+  v.shadow.position.copy(v.up).multiplyScalar(R + 0.03); v.shadow.quaternion.setFromUnitVectors(tmpV.set(0, 0, 1), v.up); v.shadow.scale.setScalar(v.kind === 'pod' ? 1.0 : 0.85);
+}
+{
+  const m = buildMoto(), p = buildPod(); m.scale = V_SCALE; p.scale = V_SCALE;
+  for (const v of [m, p]) { scene.add(v.root); v.shadow = vShadow(); VEHS.push(v); }
+  const ax = new THREE.Vector3().copy(up).cross(facing).normalize();
+  parkVehicle(m, up.clone().applyAxisAngle(facing, 0.3).applyAxisAngle(ax, -0.05), facing);
+  parkVehicle(p, up.clone().applyAxisAngle(facing, -0.32).applyAxisAngle(ax, -0.05), facing);
+}
+// the water planet, full of sea life
+const WC = new THREE.Vector3(-0.62, 0.36, 0.7).normalize().multiplyScalar(56), WR = 13;
+const WATER_BG = new THREE.Color(0x1F6FA8);
+scene.fog = new THREE.Fog(0x1F6FA8, 1e4, 1e5);
+const SEA = (() => {
+  const g = new THREE.Group(); g.position.copy(WC); scene.add(g);
+  const wm = vNol(new THREE.MeshToonMaterial({ color: 0x4FB8F0, gradientMap: ramp, transparent: true, opacity: 0.45, depthWrite: false, side: THREE.DoubleSide }));
+  const water = new THREE.Mesh(new THREE.SphereGeometry(WR, 64, 44), wm); water.renderOrder = 2; g.add(water);
+  const rim = new THREE.Mesh(new THREE.SphereGeometry(WR * 1.012, 48, 32), vNol(new THREE.MeshBasicMaterial({ color: 0xBDEBFF, transparent: true, opacity: 0.18, depthWrite: false, side: THREE.BackSide }))); g.add(rim);
+  const fish = [], schools = [], jellies = [], bubbles = [];
+  const FCOL = [0xFF8A3D, 0xFF6FA8, 0xFFD23C, 0x7ED6A8, 0xB79CF0];
+  const mkFish = (col, sz) => {
+    const f = new THREE.Group(); const b = mesh(new THREE.SphereGeometry(0.5, 14, 10), col); b.scale.set(0.5, 0.75, 1); f.add(b);
+    const t = mesh(new THREE.ConeGeometry(0.4, 0.5, 4).rotateX(-Math.PI / 2), col); t.position.z = -0.6; t.scale.set(0.25, 1, 1); f.add(t);
+    for (const s of [-1, 1]) { const e = vMesh(new THREE.SphereGeometry(0.07, 8, 6), VC.ink, f, 0.2 * s, 0.1, 0.3, false); }
+    f.scale.setScalar(sz); f.userData.tail = t; return f;
+  };
+  for (let s = 0; s < 5; s++) {
+    const axis = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize(), r = 4 + Math.random() * 7.5;
+    const st = new THREE.Vector3(1, 0, 0); if (Math.abs(axis.x) > 0.9) st.set(0, 1, 0); st.cross(axis).normalize();
+    const sc = { axis, r, st, a: Math.random() * 6.28, sp: (0.25 + Math.random() * 0.3) * (Math.random() < 0.5 ? -1 : 1), list: [] };
+    const col = FCOL[s % FCOL.length];
+    for (let i = 0; i < 7; i++) { const f = mkFish(col, 0.55 + Math.random() * 0.2); g.add(f); sc.list.push({ f, off: new THREE.Vector3((Math.random() - .5) * 2, (Math.random() - .5) * 1.5, (Math.random() - .5) * 2), ph: Math.random() * 6 }); }
+    schools.push(sc);
+  }
+  // a big friendly whale
+  const whale = new THREE.Group(); { const b = mesh(new THREE.SphereGeometry(1, 22, 16), 0x5C7CE0); b.scale.set(1.3, 1.1, 2.6); whale.add(b);
+    const belly = mesh(new THREE.SphereGeometry(1, 20, 12), 0xDCE6FF); belly.scale.set(1.05, 0.7, 2.2); belly.position.set(0, -0.42, 0.25); whale.add(belly);
+    const tail = mesh(new THREE.SphereGeometry(1, 14, 10), 0x5C7CE0); tail.scale.set(1.5, 0.15, 0.6); tail.position.z = -2.8; whale.add(tail); whale.userData.tail = tail;
+    for (const s of [-1, 1]) { vMesh(new THREE.SphereGeometry(0.13, 10, 8), VC.ink, whale, 0.95 * s, 0.25, 1.7, false); const fl = mesh(new THREE.SphereGeometry(1, 12, 8), 0x5C7CE0); fl.scale.set(0.9, 0.12, 0.35); fl.position.set(1.3 * s, -0.4, 0.6); fl.rotation.z = 0.5 * s; whale.add(fl); } }
+  g.add(whale); const wh = { axis: new THREE.Vector3(0.3, 1, 0.2).normalize(), r: 8.5, a: 0 };
+  for (let i = 0; i < 6; i++) {
+    const j = new THREE.Group(), c = [0xFFB3E6, 0xC9B3FF, 0xA6F0FF][i % 3];
+    const top = new THREE.Mesh(new THREE.SphereGeometry(0.6, 18, 10, 0, Math.PI * 2, 0, Math.PI / 2), vNol(new THREE.MeshToonMaterial({ color: c, gradientMap: ramp, transparent: true, opacity: 0.8 }))); j.add(top);
+    for (let k = 0; k < 5; k++) { const a = k / 5 * 6.28, t = vMesh(new THREE.CylinderGeometry(0.03, 0.015, 1.1, 5), c, j, Math.cos(a) * 0.35, -0.55, Math.sin(a) * 0.35, false); t.userData.a = a; }
+    const p = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize().multiplyScalar(3 + Math.random() * 8);
+    j.position.copy(p); g.add(j); jellies.push({ j, base: p, ph: Math.random() * 6 });
+  }
+  // kelp clumps on a little sandy pebble at the centre
+  const core = mesh(new THREE.IcosahedronGeometry(1.6, 2), 0xF2D9A0); g.add(core);
+  for (let i = 0; i < 9; i++) {
+    const d = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize(), k = new THREE.Group();
+    k.position.copy(d).multiplyScalar(1.5); k.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d); g.add(k);
+    for (let s = 0; s < 4; s++) { const seg = mesh(new THREE.CapsuleGeometry(0.1, 0.5, 4, 6), i % 2 ? 0x3DCB7A : 0x7ED6A8); seg.position.y = 0.35 + s * 0.6; k.add(seg); }
+    k.userData.ph = Math.random() * 6; jellies.push({ kelp: k });
+  }
+  const bm = vNol(new THREE.MeshBasicMaterial({ color: 0xE8F8FF, transparent: true, opacity: 0.7 }));
+  for (let i = 0; i < 40; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.09, 6, 5), bm); const d = new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).normalize(); b.userData = { d, r: Math.random() * WR, s: 0.6 + Math.random() }; g.add(b); bubbles.push(b); }
+  const q = new THREE.Quaternion(), v = new THREE.Vector3(), v2 = new THREE.Vector3();
+  return {
+    update(dt, t) {
+      for (const sc of schools) {
+        sc.a += sc.sp * dt * 0.6;
+        const p = v.copy(sc.st).applyAxisAngle(sc.axis, sc.a).multiplyScalar(sc.r), tan = v2.copy(sc.axis).cross(p).normalize().multiplyScalar(Math.sign(sc.sp));
+        for (const it of sc.list) {
+          it.f.position.copy(p).add(it.off).addScaledVector(sc.axis, Math.sin(t * 1.3 + it.ph) * 0.3);
+          it.f.lookAt(tmpV.copy(it.f.position).add(tan)); it.f.userData.tail.rotation.y = Math.sin(t * 9 + it.ph) * 0.5;
+        }
+      }
+      wh.a += dt * 0.12; const st = new THREE.Vector3(1, 0, 0).cross(wh.axis).normalize(); const wp = v.copy(st).applyAxisAngle(wh.axis, wh.a).multiplyScalar(wh.r);
+      whale.position.copy(wp); whale.lookAt(tmpV.copy(wp).add(v2.copy(wh.axis).cross(wp))); whale.userData.tail.rotation.x = Math.sin(t * 1.6) * 0.3;
+      for (const it of jellies) {
+        if (it.kelp) { it.kelp.children.forEach((s, i) => { s.position.x = Math.sin(t * 1.2 + it.kelp.userData.ph + i * 0.7) * 0.12 * i; }); continue; }
+        const pu = 0.5 + 0.5 * Math.sin(t * 2 + it.ph); it.j.position.copy(it.base).multiplyScalar(1 + 0.05 * Math.sin(t * 0.5 + it.ph));
+        it.j.quaternion.setFromUnitVectors(tmpV.set(0, 1, 0), tmpV2.copy(it.base).normalize()); it.j.scale.set(1 + 0.12 * pu, 1 - 0.12 * pu, 1 + 0.12 * pu);
+      }
+      for (const b of bubbles) { b.userData.r += dt * b.userData.s; if (b.userData.r > WR - 0.2) b.userData.r = 2; b.position.copy(b.userData.d).multiplyScalar(b.userData.r); }
+    }
+  };
+})();
+// ---- driving state
+let drive = null;   // { v, mode: 'moto' | 'hover' | 'fly' | 'sub', ... }
+let FL = null;      // free flight: { pos, fwd, bank, landing }
+const wingBtn = document.getElementById('wing');
+function vehNear() {
+  if (drive || riding || heldBy || holding || !grounded) return null;
+  let best = null, bd = 1.5;
+  for (const v of VEHS) { if (v.taken) continue; const d = up.angleTo(v.up) * R; if (d < bd && height < 1.2) { bd = d; best = v; } }
+  return best;
+}
+function enterVehicle(v) {
+  drive = { v, mode: v.kind === 'moto' ? 'moto' : 'hover', lean: 0, spin: 0, bob: 0, prevF: facing.clone(), boom: 0 };
+  v.taken = true; v.shadow.visible = true; up.copy(v.up); facing.copy(v.facing); ortho(facing); camFwd.copy(facing);
+  vy = 0; grounded = true; slide = null; flipT = -1; usedFlip = false; dancing = false; idleTime = 0;
+  setExpr('laugh', 900, simT); vehBurst(v.root.position, up, 10);
+  document.body.classList.add('driving'); vehUI();
+}
+function exitVehicle() {
+  const v = drive.v; parkVehicle(v, up, facing); v.taken = false; drive = null; FL = null;
+  grounded = false; vy = JUMP_V; airT = 0;
+  slide = { dir: facing.clone().cross(up).normalize(), speed: 2.6 };
+  document.body.classList.remove('driving'); vehUI();
+}
+function vehBurst(p, u, n) { for (let i = 0; i < n; i++) emitSpark(tmpV.copy(p).add(new THREE.Vector3(Math.random() - .5, Math.random() - .5, Math.random() - .5).multiplyScalar(1.4)), u, i < 3); }
+function vehUI() {
+  const show = !!drive && drive.v.kind === 'pod' && drive.mode !== 'sub' && !(FL && FL.near === 'water');
+  wingBtn.classList.toggle('show', show); wingBtn.classList.toggle('on', !!drive && (drive.mode === 'fly' || drive.mode === 'sub'));
+}
+function takeOff() {
+  const pos = new THREE.Vector3().copy(up).multiplyScalar(R + height + 0.3);
+  const fwd = facing.clone().addScaledVector(up, 0.5).normalize();
+  FL = { pos, fwd, bank: 0, landing: false, near: 'main', speed: 6 }; drive.mode = 'fly'; setExpr('laugh', 900, simT); vehBurst(pos, up, 14); vehUI();
+}
+function wingToggle() {
+  if (!drive || drive.v.kind !== 'pod') return;
+  if (drive.mode === 'hover') takeOff();
+  else if (drive.mode === 'fly' && FL && FL.near === 'main') { FL.landing = !FL.landing; wingBtn.classList.toggle('on', !FL.landing); }
+}
+wingBtn.addEventListener('pointerdown', e => { e.preventDefault(); e.stopPropagation(); wingToggle(); });
+addEventListener('keydown', e => { if (e.code === 'KeyG' && modeKind === 'planet') wingToggle(); });
+// one free-flight step (also swimming). Keeps up / facing / height in the planet's terms so the rest of the game still works.
+const _fq = new THREE.Quaternion(), _fg = new THREE.Vector3(), _fr = new THREE.Vector3(), _fu = new THREE.Vector3();
+function flightStep(dt, ix, iy, boost) {
+  const F = FL, dW = F.pos.distanceTo(WC), dM = F.pos.length();
+  F.near = (dW - WR) < (dM - R) ? 'water' : 'main';
+  const inWater = dW < WR;
+  if (inWater && drive.mode !== 'sub') { drive.mode = 'sub'; F.speed = Math.min(F.speed, 6); vehBurst(F.pos, _fg.copy(F.pos).sub(WC).normalize(), 18); setExpr('shocked', 700, simT); F.landing = false; vehUI(); }
+  if (!inWater && drive.mode === 'sub') { drive.mode = 'fly'; vehBurst(F.pos, _fg.copy(F.pos).sub(WC).normalize(), 18); setExpr('laugh', 700, simT); vehUI(); }
+  const g = F.near === 'water' ? _fg.copy(F.pos).sub(WC).normalize() : _fg.copy(F.pos).normalize();
+  const sub = drive.mode === 'sub';
+  // steering: stick x turns, stick y climbs or dives
+  const turn = (sub ? 1.5 : 1.9) * dt;
+  F.fwd.applyAxisAngle(g, -ix * turn);
+  _fr.copy(F.fwd).cross(g); if (_fr.lengthSq() < 1e-6) _fr.set(1, 0, 0); _fr.normalize();
+  let pitchIn = iy;
+  if (F.landing) { pitchIn = -0.9; ix = 0; }
+  F.fwd.applyAxisAngle(_fr, pitchIn * (sub ? 1.2 : 1.4) * dt).normalize();
+  const lim = sub ? 1.2 : 1.1, pa = Math.asin(THREE.MathUtils.clamp(F.fwd.dot(g), -1, 1));
+  if (Math.abs(pa) > lim) { const h = _fu.copy(F.fwd).addScaledVector(g, -F.fwd.dot(g)).normalize(); F.fwd.copy(h).multiplyScalar(Math.cos(lim)).addScaledVector(g, Math.sign(pa) * Math.sin(lim)); }
+  if (!sub && !F.landing && iy === 0) { const h = _fu.copy(F.fwd).addScaledVector(g, -F.fwd.dot(g)).normalize(); F.fwd.lerp(h, Math.min(1, 0.6 * dt)).normalize(); }
+  const target = (sub ? 5.5 : 13) * (boost ? 1.6 : 1);
+  F.speed += (target - F.speed) * Math.min(1, 2 * dt);
+  F.pos.addScaledVector(F.fwd, F.speed * dt);
+  // keep off the head-planet (its nose and its stick too), keep inside the sky
+  const u = _fu.copy(F.pos).normalize(), alt = F.pos.length() - R;
+  const floor = Math.max(0, capHeight(u), noseHeight(u)) + 0.55;
+  if (alt < floor) {
+    if (F.landing) { landPod(); return; }
+    F.pos.copy(u).multiplyScalar(R + floor); const dn = F.fwd.dot(u); if (dn < 0) F.fwd.addScaledVector(u, -dn * 1.2).normalize();
+  }
+  if (F.landing && alt < floor + 0.6) { landPod(); return; }
+  for (const o of obstacles) if (o.maxH !== undefined) { const ang = u.angleTo(o.p); if (ang < o.a && alt < o.maxH + 0.4) { F.pos.copy(u).multiplyScalar(R + o.maxH + 0.4); } }
+  if (F.pos.length() > 125) F.fwd.lerp(_fu.copy(F.pos).negate().normalize(), Math.min(1, 1.5 * dt)).normalize();
+  // skim under the surface unless the stick is pushed up to leave the water
+  if (sub && dW > WR - 2.2 && iy < 0.3) { const o = F.fwd.dot(g); if (o > -0.25) F.fwd.addScaledVector(g, -(o + 0.25) * Math.min(1, 5 * dt)).normalize(); }
+  if (sub && dW < 2.3) { F.pos.copy(WC).addScaledVector(g, 2.3); const dn = F.fwd.dot(g); if (dn < 0) F.fwd.addScaledVector(g, -dn * 1.2).normalize(); }
+  F.bank += ((ix * (sub ? -0.35 : -0.75)) - F.bank) * Math.min(1, 5 * dt);
+  F.g = g.clone();
+  // planet-terms mirror for the rest of the game (multiplayer, sparks)
+  up.copy(F.pos).normalize(); height = F.pos.length() - R; facing.copy(F.fwd).addScaledVector(up, -F.fwd.dot(up)); if (facing.lengthSq() < 1e-6) facing.copy(camFwd); facing.normalize();
+  camFwd.copy(facing); grounded = true; vy = 0; airT = 0;
+}
+function landPod() {
+  const u = FL.pos.clone().normalize(); up.copy(u); facing.copy(FL.fwd).addScaledVector(u, -FL.fwd.dot(u)); if (facing.lengthSq() < 1e-6) facing.copy(camFwd); facing.normalize();
+  camFwd.copy(facing); height = Math.max(0, noseHeight(u)); FL = null; drive.mode = 'hover'; vehBurst(tmpV.copy(u).multiplyScalar(R + 0.3), u, 10); vehUI();
+}
+const _vm = new THREE.Matrix4(), _vx = new THREE.Vector3(), _vy = new THREE.Vector3(), _vz = new THREE.Vector3(), _vqq = new THREE.Quaternion();
+function flightBasis(F, q) {
+  _vz.copy(F.fwd); _vy.copy(F.g).addScaledVector(_vz, -F.g.dot(_vz)).normalize(); _vy.applyAxisAngle(_vz, F.bank);
+  _vx.copy(_vy).cross(_vz).normalize(); _vy.copy(_vz).cross(_vx).normalize(); _vm.makeBasis(_vx, _vy, _vz); q.setFromRotationMatrix(_vm); return q;
+}
+// place the vehicle and its pilot after the planet step
+function vehPlace(dt, mag, floor) {
+  const D = drive, v = D.v, t = simT / 1000;
+  v.root.scale.setScalar(v.scale);
+  if (v.kind === 'pod') {
+    const want = D.mode === 'fly' && !(FL && FL.landing) ? 1 : 0; v.wingAmt += (want - v.wingAmt) * Math.min(1, 6 * dt);
+    v.wings.forEach((w, i) => { w.scale.setScalar(Math.max(0.001, v.wingAmt)); w.rotation.z = (i ? -1 : 1) * (0.4 * (1 - v.wingAmt) + Math.sin(t * 9) * 0.08 * v.wingAmt); });
+    const isSub = D.mode === 'sub'; v.pod.visible = !isSub; v.sub.visible = isSub; v.prop.rotation.z += dt * (isSub ? 14 : 0);
+  }
+  if (FL) {
+    flightBasis(FL, v.root.quaternion); v.root.position.copy(FL.pos).addScaledVector(_vy, -0.4 * v.scale);
+    v.shadow.visible = false;
+    if (D.mode === 'sub') hero.root.visible = false;
+    else {
+      hero.root.visible = true; hero.root.quaternion.copy(v.root.quaternion);
+      hero.root.position.copy(v.root.position).addScaledVector(_vy, v.seat * v.scale);
+    }
+    return;
+  }
+  hero.root.visible = true;
+  // on the ground (motorbike) or just above it (hover pod)
+  const turn = signedAngle(D.prevF, facing) / Math.max(dt, 1e-3); D.prevF.copy(facing);
+  const hov = v.kind === 'pod' ? 0.55 + 0.08 * Math.sin(t * 3.2) : 0;
+  const base = floor + hov;
+  v.root.position.copy(up).multiplyScalar(R + base);
+  const x = tmpV2.copy(up).cross(facing).normalize(); basis.makeBasis(x, up, facing); v.root.quaternion.setFromRotationMatrix(basis);
+  D.lean += ((v.kind === 'moto' ? -0.12 : -0.06) * THREE.MathUtils.clamp(turn, -4, 4) - D.lean) * Math.min(1, 6 * dt);
+  v.root.quaternion.multiply(_vqq.setFromAxisAngle(tmpV.set(0, 0, 1), D.lean));
+  if (v.kind === 'pod') v.root.quaternion.multiply(_vqq.setFromAxisAngle(tmpV.set(1, 0, 0), -0.12 * mag));
+  if (v.wheels) { D.spin += mag * dt * 22; v.wheels.forEach(w => { w.rotation.x = D.spin; }); if (mag > 0.6) D.boom += dt; else D.boom = 0; }
+  hero.root.quaternion.copy(v.root.quaternion); hero.root.position.copy(v.root.position).addScaledVector(tmpV.set(0, 1, 0).applyQuaternion(v.root.quaternion), v.seat * v.scale);
+  if (v.kind === 'moto') hero.root.position.addScaledVector(tmpV.set(0, 0, 1).applyQuaternion(v.root.quaternion), -0.14 * v.scale);
+  v.shadow.visible = true; v.shadow.position.copy(up).multiplyScalar(R + floor + 0.03); v.shadow.quaternion.setFromUnitVectors(tmpV.set(0, 0, 1), up);
+  v.shadow.scale.setScalar(v.kind === 'pod' ? 0.9 : 0.85); v.shadow.material.opacity = 0.22;
+  // run dinosaurs over (they go flying)
+  if (mag > 0.4) for (const d of dinos) {
+    if (d.state !== DST.walk && d.state !== DST.dizzy) continue;
+    if (up.angleTo(d.up) * R < d.radius + 0.7) knockDino(d, facing);
+  }
+}
+function vehCamera(dt) {
+  const F = FL, back = drive.mode === 'sub' ? 5.5 : 7.5, lift = drive.mode === 'sub' ? 1.8 : 2.6;
+  const desired = tmpV.copy(F.pos).addScaledVector(F.fwd, -back).addScaledVector(F.g, lift);
+  const k = Math.min(1, 4 * dt); camera.position.lerp(desired, k); camera.up.lerp(F.g, k).normalize();
+  camera.lookAt(tmpV2.copy(F.pos).addScaledVector(F.fwd, 3).addScaledVector(F.g, 0.6));
+}
+// underwater tint for the camera
+let wasUnder = false;
+function vehWorld(dt) {
+  SEA.update(dt, simT / 1000);
+  const under = camera.position.distanceTo(WC) < WR - 0.05;
+  if (under !== wasUnder) { wasUnder = under; scene.background = under ? WATER_BG : new THREE.Color(COL.bg); scene.fog.near = under ? 3 : 1e4; scene.fog.far = under ? 34 : 1e5; }
+}
+// multiplayer: what we're driving, and the other players' vehicles
+function vehSnap() {
+  const v = drive.v, r = x => Math.round(x * 1000) / 1000, p = v.root.position, q = v.root.quaternion;
+  return { k: v.kind === 'moto' ? 0 : 1, m: ['moto', 'hover', 'fly', 'sub'].indexOf(drive.mode), w: Math.round(v.wingAmt * 100) / 100 || 0, p: [p.x, p.y, p.z].map(r), q: [q.x, q.y, q.z, q.w].map(r) };
+}
+function vehRemote(rp, st, dt) {
+  const s = st.veh;
+  if (!s || !rp.vis) { if (rp.veh) { scene.remove(rp.veh.root); rp.veh = null; } return; }
+  if (!rp.veh || rp.veh.k !== s.k) { if (rp.veh) scene.remove(rp.veh.root); const v = s.k ? buildPod() : buildMoto(); v.k = s.k; v.root.scale.setScalar(V_SCALE); v.root.position.set(...s.p); v.root.quaternion.set(...s.q); scene.add(v.root); rp.veh = v; }
+  const v = rp.veh, k = Math.min(1, 12 * dt);
+  v.root.position.lerp(tmpV.set(...s.p), k); v.root.quaternion.slerp(_vqq.set(...s.q), k);
+  if (v.kind === 'pod') { v.wings.forEach(w => w.scale.setScalar(Math.max(0.001, s.w || 0))); v.pod.visible = s.m !== 3; v.sub.visible = s.m === 3; v.prop.rotation.z += dt * 14; }
+  if (v.wheels) v.wheels.forEach(w => { w.rotation.x += dt * 10 * (st.a ? st.a[0] || 0 : 0); });
+  rp.ch.root.visible = s.m !== 3; rp.shadow.visible = false;
+  rp.ch.root.quaternion.copy(v.root.quaternion); rp.ch.root.position.copy(v.root.position).addScaledVector(tmpV.set(0, 1, 0).applyQuaternion(v.root.quaternion), (s.k ? 0.3 : 0.66) * V_SCALE);
+}
 
 function update(dt) {
   simT += dt * 1000;
@@ -1883,12 +2208,13 @@ function update(dt) {
 
   const zapping = controls && (zapOn || keys.has('ShiftLeft') || keys.has('ShiftRight'));
   const zapRun = zapping && mag > 0.08;
-  if (mag > 0.08 && !heldBy) {
-    const dist = (zapping ? ZAP_SPEED : SPEED) * (gliding ? 1.15 : 1) * (riding ? RIDE_MULT : 1) * (holding ? HOLD_MULT : 1) * mag * dt;
+  if (FL) flightStep(dt, ix, iy, zapping);
+  if (mag > 0.08 && !heldBy && !FL) {
+    const dist = (zapping ? ZAP_SPEED : SPEED) * (gliding ? 1.15 : 1) * (riding ? RIDE_MULT : 1) * (drive ? (drive.mode === 'moto' ? 2.6 : 2.0) : 1) * (holding ? HOLD_MULT : 1) * mag * dt;
     tmpQ.setFromAxisAngle(tmpV2.copy(up).cross(move).normalize(), dist / (R + height * 0.5));
     transport(tmpQ); move.applyQuaternion(tmpQ); ortho(move);
     const a = signedAngle(facing, move);
-    facing.applyAxisAngle(up, a * Math.min(1, (riding ? 6 : 14) * dt));
+    facing.applyAxisAngle(up, a * Math.min(1, (drive ? 3.2 : riding ? 6 : 14) * dt));
     const ca = signedAngle(camFwd, facing);
     if (mode === 'play' && !camHeld && Math.abs(ca) < 2.2) camFwd.applyAxisAngle(up, ca * Math.min(1, 0.9 * mag * dt));
   }
@@ -1900,10 +2226,10 @@ function update(dt) {
     tmpQ.setFromAxisAngle(tmpV2.copy(up).cross(slide.dir).normalize(), slide.speed * dt / (R + height)); transport(tmpQ);
   }
   // walls: the collar (and, on dino-back, the nose)
-  const obs = riding ? [obstacles[0], NOSE_OBS] : obstacles;
+  const obs = FL ? [] : drive ? [obstacles[0]] : riding ? [obstacles[0], NOSE_OBS] : obstacles;
   for (const o of obs) {
-    if (!riding && o.maxH !== undefined && height > o.maxH) continue;
-    const pad = riding ? riding.radius * 0.6 / R : 0;
+    if (!riding && !drive && o.maxH !== undefined && height > o.maxH) continue;
+    const pad = drive ? 0.7 / R : riding ? riding.radius * 0.6 / R : 0;
     const d = up.dot(o.p), ang = Math.acos(Math.min(1, d));
     if (ang < o.a + pad) {
       const t = tmpV2.copy(up).addScaledVector(o.p, -d);
@@ -1912,7 +2238,7 @@ function update(dt) {
       up.copy(o.p).multiplyScalar(Math.cos(o.a + pad)).addScaledVector(t, Math.sin(o.a + pad)).normalize();
     }
   }
-  if (!riding && !heldBy) {
+  if (!riding && !heldBy && !drive) {
     for (const d of dinos) {
       if (d === riding || d.state === DST.held || d.state === DST.thrown) continue;
       const rad = (d.radius + 0.3) / R;
@@ -1937,7 +2263,7 @@ function update(dt) {
   // ---- what's under his feet: planet, nose (bouncy), stick cap, a dinosaur's back ----
   const capH = capHeight(up), nH = noseHeight(up);
   let floor = 0, bouncy = false;
-  if (nH > 0 && !riding) { floor = nH; bouncy = true; }
+  if (nH > 0 && !riding) { floor = nH; bouncy = !drive; }
   const thP = Math.acos(THREE.MathUtils.clamp(up.y, -1, 1));
   if (up.y > 0 && thP < COLLAR_ANG) {
     const ch = (HR_N + 0.04) * HS / Math.cos(thP) - R;
@@ -1945,7 +2271,7 @@ function update(dt) {
   }
   if (capH > 0 && height >= capH - 0.4) floor = capH;
   let dinoUnder = null;
-  if (!riding && !heldBy) for (const d of dinos) {
+  if (!riding && !heldBy && !drive) for (const d of dinos) {
     if (d.state === DST.held || d.state === DST.thrown) continue;
     if (up.angleTo(d.up) < (d.radius + 0.15) / R && height >= d.topH - 0.5 && d.topH > floor) { floor = d.topH; dinoUnder = d; bouncy = false; }
   }
@@ -1955,13 +2281,16 @@ function update(dt) {
   // action button: pick up / throw
   if (input.act) {
     input.act = false;
+    const vn = vehNear();
     if (menuReach && !warp) chooseDisc(menuReach);
     else if (holding) doThrow();
-    else if (!riding && !heldBy && grounded) { const g = findGrab(); if (g) grab(g); }
+    else if (vn) enterVehicle(vn);
+    else if (!riding && !heldBy && !drive && grounded) { const g = findGrab(); if (g) grab(g); }
   }
   // jump / double-jump flip / hop off a dinosaur
   if (input.jump && !heldBy) {
-    if (riding) dismount(true, mag > 0.1 ? move : null);
+    if (drive) { if (!FL) exitVehicle(); }
+    else if (riding) dismount(true, mag > 0.1 ? move : null);
     else if (grounded) { vy = JUMP_V; grounded = false; usedFlip = false; }
     else if (!usedFlip && launchLeft <= 0 && !holding) { vy = FLIP_V; usedFlip = true; flipT = 0; setExpr('shocked', 900, simT); }
   }
@@ -1974,7 +2303,10 @@ function update(dt) {
     else if (bouncy) launchToStick();
     else { height = floor; vy = 0; grounded = true; airT = 0; usedFlip = false; flipT = -1; launchLeft = 0; slide = null; }
   };
-  if (riding) {
+  if (drive) {
+    if (!FL) height = floor + (drive.v.kind === 'pod' ? 0.55 : 0) + drive.v.seat * drive.v.scale;
+    vy = 0; grounded = true; airT = 0;
+  } else if (riding) {
     const d = riding;
     d.up.copy(up); d.facing.copy(facing); d.h = 0; d.walkAmt = mag; d.state = DST.ridden;
     height = d.topH; vy = 0; grounded = true; airT = 0;
@@ -1985,7 +2317,7 @@ function update(dt) {
     else if (height > floor + 0.05) { grounded = false; vy = 0; }
     else height = floor;
   }
-  gliding = !grounded && !riding && !heldBy && !holding && controls && jumpHeld && vy < 0 && launchLeft <= 0 && flipT < 0;
+  gliding = !grounded && !riding && !drive && !heldBy && !holding && controls && jumpHeld && vy < 0 && launchLeft <= 0 && flipT < 0;
   if (!grounded && !heldBy) {
     if (gliding) vy = Math.max(vy - GRAV * 0.12 * dt, -1.5);
     else vy -= GRAV * dt;
@@ -2003,7 +2335,7 @@ function update(dt) {
     const d = holding.d; d.up.copy(up); d.facing.copy(facing); d.h = height + HOLD_H; d.walkAmt = 0;
   }
   holdAmt += (((holding || warp) ? 1 : 0) - holdAmt) * Math.min(1, 12 * dt);
-  rideAmt += ((riding ? 1 : 0) - rideAmt) * Math.min(1, 12 * dt);
+  rideAmt += ((riding || drive ? 1 : 0) - rideAmt) * Math.min(1, 12 * dt);
 
   // giant face: eyes / mouth close when anyone stands on them
   const fc = face.cl; fc.l = fc.r = fc.m = false;
@@ -2015,12 +2347,12 @@ function update(dt) {
     if (Math.abs(Math.hypot(fx, fy + 0.1375) - 0.194) < 0.06 && fy < -0.2) fc.m = true;
   };
   if (mode === 'play') {
-    if ((grounded && floor === 0) || riding) pressFace(up);
+    if ((grounded && floor === 0 && !FL) || riding) pressFace(up);
     for (const rp of Net.remotes.values()) if (rp.vis && rp.h < 0.3) pressFace(rp.up);
   }
 
   // breakdance timer
-  if (mode === 'play' && grounded && !sitting && !riding && !holding && mag < 0.05) idleTime += dt; else idleTime = 0;
+  if (mode === 'play' && grounded && !sitting && !riding && !drive && !holding && mag < 0.05) idleTime += dt; else idleTime = 0;
   const wasDancing = dancing;
   dancing = idleTime > BD_START;
   if (wasDancing && !dancing) setExpr('smile', 0, simT);
@@ -2037,7 +2369,7 @@ function update(dt) {
   shadow.position.copy(up).multiplyScalar(R + (riding ? 0 : floor) + 0.04);
   shadow.quaternion.setFromUnitVectors(new THREE.Vector3(0, 0, 1), up);
   const ss = 1 / (1 + Math.max(0, height - floor) * 0.5); shadow.scale.setScalar(ss); shadow.material.opacity = 0.22 * ss;
-  shadow.visible = hero.root.visible && !riding;
+  shadow.visible = hero.root.visible && !riding && !drive;
   // stick tilt input in his own frame
   let sx = 0, sz = 0;
   if (mag > 0.02) {
@@ -2049,6 +2381,8 @@ function update(dt) {
   lastMag = mag; lastSX = sx; lastSZ = sz; lastZap = zapRun;
   poseCharacter(hero, { mag, zr: zapRun, grounded: grounded || !!riding, sit: sitAmt, dance: dancing ? (idleTime - BD_START) % 7.8 : -1,
     flipT, airT, glide: glideAmt, hold: holdAmt, ride: rideAmt, sx, sz, held: !!heldBy, gliding, t: simT / 1000, tms: simT }, dt);
+  if (drive) vehPlace(dt, mag, floor); else hero.root.visible = true;
+  vehWorld(dt);
   if (hero.trooper) trooperPose(hero, trWeight(glideAmt, holdAmt, flipT >= 0, heldBy, sitAmt, dancing), recoil);
   recoil = Math.max(0, recoil - dt * 6); fireCd -= dt;
   if (trooper && controls && mode === 'play' && !heldBy && fireCd <= 0 && (fireHeld || keys.has('KeyF'))) fireBall();
@@ -2070,7 +2404,7 @@ function update(dt) {
   updateDinos(dt, !Net.active || Net.isHost);
   // action button hint
   menuTick(dt);
-  actBtn.classList.toggle('ready', !!holding || (!!menuReach && !warp) || (!riding && !heldBy && grounded && controls && !!findGrab()));
+  actBtn.classList.toggle('ready', !!holding || (!!menuReach && !warp) || (!!vehNear() && controls) || (!riding && !drive && !heldBy && grounded && controls && !!findGrab()));
   actBtn.classList.toggle('throw', !!holding);
 
   // electric spark trail
@@ -2127,7 +2461,8 @@ function update(dt) {
       if (k > 0.6) { controls = true; document.body.classList.remove('intro'); }
       if (k >= 1) mode = 'play';
     }
-  } else {
+  } else if (FL && drive) vehCamera(dt);
+  else {
     const k = Math.min(1, 7 * dt);
     camera.position.lerp(desired, k);
     camera.up.lerp(up, k).normalize();
@@ -2226,7 +2561,7 @@ function buildFloppy(d) {
   return { d, root, tilt, base: new THREE.Vector3(), hi: 1, pop: 0 };
 }
 function openMenu() {
-  if (menu || warp || modeKind !== 'planet' || mode !== 'play' || !controls || riding || heldBy || holding) return;
+  if (menu || warp || modeKind !== 'planet' || mode !== 'play' || !controls || riding || drive || heldBy || holding) return;
   const rightV = new THREE.Vector3().copy(camFwd).cross(up).normalize();
   const base = hero.root.position.clone().addScaledVector(up, 1.55).addScaledVector(facing, 1.45);
   menu = { items: [], t: 0, center: base.clone() };

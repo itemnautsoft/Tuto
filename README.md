@@ -106,3 +106,8 @@ The dribbled ball is now the same ball Tuto shoots as a point, and it takes the 
 
 ## Trooper (secret character)
 On the planet, tap Tuto three times in a row and he turns into the Trooper: a blocky helmeted gunner with a black vest and a huge black gun. A new fire button appears (or press F); hold it to keep shooting. The balls fly along the planet and knock back whatever they hit: dinosaurs get launched like a throw, and other players in a room get knocked back too (they see the shots as well). Tap him three times again to turn back.
+
+## Vehicles and the water planet
+Two vehicles are parked near the start on the planet: a **motorbike** and a **hover pod**. Walk up and press the hand button to get in; press jump to hop out. The motorbike is fast, leans into turns and sends dinosaurs flying. The hover pod floats over the ground.
+In the pod, the **wing button** (or G) grows wings and takes off: the stick turns and climbs/dives, the lightning button boosts. Press the wing button again to land.
+Fly to the **water planet** in the sky (fish schools, a whale, jellyfish, kelp and bubbles): diving in turns the pod into a **submarine**, and pushing up out of the water turns it back into the flying pod. Other players in a room see your vehicle too.
