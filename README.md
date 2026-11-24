@@ -111,3 +111,9 @@ On the planet, tap Tuto three times in a row and he turns into the Trooper: a bl
 Two vehicles are parked near the start on the planet: a **motorbike** and a **hover pod**. Walk up and press the hand button to get in; press jump to hop out. The motorbike is fast, leans into turns and sends dinosaurs flying. The hover pod floats over the ground.
 In the pod, the **wing button** (or G) grows wings and takes off: the stick turns and climbs/dives, the lightning button boosts. Press the wing button again to land.
 Fly to the **water planet** in the sky (fish schools, a whale, jellyfish, kelp and bubbles): diving in turns the pod into a **submarine**, and pushing up out of the water turns it back into the flying pod. Other players in a room see your vehicle too.
+
+## Feel, small moments and the play diary
+- **Momentum:** Tuto speeds up and slows down instead of starting and stopping dead. A gentle tilt is a tiptoe, a full tilt is a sprint, he carries a little past where you let go, and yanking the stick the other way at speed makes him skid and dig in (with dust) before turning. Hard landings kick up dust too.
+- **Small moments:** standing still, he takes a deep breath, glances around, tugs his mitten snug, and taps his own head (a hint for the 3-tap secret) before the breakdance starts.
+- **Play diary (📓):** the first time something happens (first flip, first ride, first flight, the water planet, the secret…) the game snaps a photo and pastes it into Tuto's diary with a short line. Pages are kept on your device.
+- **Less on screen:** the hand button only appears when there's something to pick up, throw, ride or choose. Parked vehicles bounce and flutter when you walk up to them.

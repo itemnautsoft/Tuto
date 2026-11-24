@@ -51,6 +51,26 @@
     background:rgba(255,255,255,.6); border:4px solid #141018; padding:0; touch-action:none; }
   #wing.show { display:flex; } #wing.on { background:#AEE6CF; }
   body.m-maker #wing, body.m-jam #wing, body.m-mocap #wing, body.m-frame #wing, body.intro #wing { display:none !important; }
+  #act:not(.ready):not(.throw) { opacity:0; pointer-events:none; transform:scale(.6); }
+  #act { transition: opacity .35s, transform .35s; }
+  #diaryBtn { position:fixed; top:14px; right:122px; z-index:4; width:46px; height:46px; border-radius:50%; border:4px solid rgba(20,16,24,.55);
+    background:rgba(255,255,255,.12); font-size:22px; line-height:1; padding:0; }
+  #diaryBtn.new { background:#D9F24E; border-color:#141018; }
+  body.intro #diaryBtn, body.m-maker #diaryBtn, body.m-jam #diaryBtn, body.m-mocap #diaryBtn, body.m-frame #diaryBtn { display:none; }
+  .dToast { position:fixed; top:70px; right:14px; z-index:9; display:flex; align-items:center; gap:10px; background:#fff; border:3px solid #141018; border-radius:6px;
+    padding:6px 12px 6px 6px; box-shadow:4px 4px 0 #141018; max-width:72vw; font-size:15px; font-weight:700; color:#141018; transform:translateX(120%) rotate(4deg); transition:transform .4s cubic-bezier(.3,1.4,.5,1); }
+  .dToast.in { transform:translateX(0) rotate(-2deg); } .dToast.out { transform:translate(30px,-80px) scale(.2); opacity:0; transition:all .6s ease-in; }
+  .dToast img { width:54px; height:68px; object-fit:cover; border:2px solid #141018; }
+  #diary { position:fixed; inset:0; z-index:20; background:rgba(20,16,24,.55); display:flex; align-items:center; justify-content:center; }
+  #diary[hidden] { display:none; }
+  #diary .dBook { position:relative; width:min(86vw,360px); background:#FFFDF6; border:4px solid #141018; border-radius:8px; box-shadow:8px 8px 0 #141018; padding:18px 18px 14px; color:#141018; }
+  #diary h2 { margin:0 0 10px; font-size:20px; letter-spacing:.5px; } #diary h2 span { background:#D9F24E; padding:0 6px; }
+  #diary .dPage img { width:100%; aspect-ratio:4/5; object-fit:cover; border:3px solid #141018; display:block; transform:rotate(-1deg); }
+  #diary .dCap { font-size:18px; font-weight:700; margin:12px 2px 2px; line-height:1.3; } #diary .dDate { margin:0 2px; color:#7a7080; font-size:13px; }
+  #diary .dEmpty { font-size:18px; text-align:center; padding:50px 0; line-height:1.5; }
+  #diary .dNav { display:flex; justify-content:space-between; align-items:center; margin-top:12px; }
+  #diary button { font:inherit; font-weight:800; font-size:18px; border:3px solid #141018; background:#fff; border-radius:10px; padding:4px 14px; box-shadow:2px 2px 0 #141018; color:#141018; }
+  #diary .dClose { position:absolute; top:10px; right:10px; padding:0 10px; }
   @keyframes actpulse { 50% { transform: scale(1.08); } }
   #roomChip { position:fixed; top:18px; left:14px; z-index:4; font:inherit; font-size:17px;
     padding:4px 14px; border:3px solid #161216; border-radius:14px; color:#161216; white-space:nowrap; }
@@ -253,6 +273,9 @@
 <button id="mp" aria-label="Play together"><svg viewBox="0 0 48 40" width="30" height="26"><circle cx="17" cy="14" r="8" fill="#FDBA1C" stroke="#161216" stroke-width="3.5"/><circle cx="33" cy="16" r="7" fill="#7ED6A8" stroke="#161216" stroke-width="3.5"/><path d="M4 36 q13-16 26 0 M24 36 q10-13 21 0" fill="none" stroke="#161216" stroke-width="3.5" stroke-linecap="round"/></svg></button>
 <button id="act" aria-label="Pick up / throw"><svg class="i-grab" viewBox="0 0 48 48" width="38" height="38"><rect x="12" y="8" width="22" height="28" rx="11" fill="#E8502E" stroke="#141018" stroke-width="4"/><ellipse cx="35" cy="24" rx="6" ry="8.5" transform="rotate(28 35 24)" fill="#E8502E" stroke="#141018" stroke-width="4"/><rect x="13" y="34" width="20" height="8" rx="2" fill="#E8502E" stroke="#141018" stroke-width="4"/></svg><svg class="i-throw" viewBox="0 0 48 48" width="38" height="38"><path d="M10 38 Q10 12 34 12" fill="none" stroke="#141018" stroke-width="6" stroke-linecap="round"/><path d="M27 5 L36 12 L27 19" fill="none" stroke="#141018" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 <button id="fire" aria-label="Fire"><svg viewBox="0 0 48 32" width="44" height="30"><rect x="3" y="6" width="34" height="14" rx="2" fill="#1B1820" stroke="#141018" stroke-width="3"/><rect x="36" y="9" width="9" height="8" rx="2" fill="#4F4A5C" stroke="#141018" stroke-width="3"/><rect x="12" y="19" width="8" height="10" rx="1" fill="#1B1820" stroke="#141018" stroke-width="3"/></svg></button>
+<button id="diaryBtn" aria-label="Play diary">📓</button>
+<div id="diary" hidden><div class="dBook"><h2><span>Tuto's diary</span></h2><button class="dClose" aria-label="Close">✕</button>
+  <div class="dPage"></div><div class="dNav"><button class="dPrev" aria-label="Previous page">←</button><span class="dNum"></span><button class="dNext" aria-label="Next page">→</button></div></div></div>
 <button id="wing" aria-label="Wings"><svg viewBox="0 0 48 32" width="46" height="30"><path d="M24 20 C16 6 6 4 2 8 C6 12 10 18 24 22Z" fill="#FBF5E8" stroke="#141018" stroke-width="3" stroke-linejoin="round"/><path d="M24 20 C32 6 42 4 46 8 C42 12 38 18 24 22Z" fill="#FBF5E8" stroke="#141018" stroke-width="3" stroke-linejoin="round"/><circle cx="24" cy="21" r="4" fill="#F4D452" stroke="#141018" stroke-width="3"/></svg></button>
 <div id="roomChip" hidden></div>
 <div id="mpPanel" hidden data-state="out">
@@ -1132,7 +1155,7 @@ const RIDE_MULT = 1.3, HOLD_MULT = 0.85, THROW_UP = 8.5, THROW_FWD = 7.5, HOLD_H
 let sparkAcc = 0, simT = 0;
 let usedFlip = false, flipT = -1;
 let idleTime = 0, dancing = false;
-const BD_START = 7;
+const BD_START = 12;
 let sitting = true, sitAmt = 1;
 let gliding = false, glideAmt = 0;
 let launchLeft = 0, launchOmega = 0; const launchAxis = new THREE.Vector3();
@@ -1445,7 +1468,7 @@ function trooperPose(ch, w, rc) {
 }
 const trWeight = (glide, hold, flip, held, sit, dance) => (1 - glide) * (1 - hold) * (flip ? 0 : 1) * (held ? 0 : 1) * (1 - sit) * (dance ? 0 : 1);
 function setTrooper(on) {
-  if (trooper === on) return; trooper = on;
+  if (trooper === on) return; trooper = on; if (on) diaryNote('trooper', 'Tapped my head three times. Became someone else.', 600);
   const old = hero; hero = on ? buildTrooper() : buildCharacter(PALETTES[heroPal]); hero.anim = old.anim;
   hero.root.scale.setScalar(CHAR_SCALE); hero.root.visible = old.root.visible; hero.root.position.copy(old.root.position); hero.root.quaternion.copy(old.root.quaternion);
   scene.remove(old.root); scene.add(hero.root);
@@ -1798,7 +1821,7 @@ function grab(g) {
   else holding = { kind: 'player', id: g.id, t0: simT };
 }
 function doThrow() {
-  const dir = facing.clone();
+  const dir = facing.clone(); diaryNote('throw', 'Picked up a friend and threw them. Sorry, friend.', 300);
   if (holding.kind === 'dino') {
     const d = holding.d; d.state = DST.thrown; d.vy = THROW_UP; d.tdir.copy(dir); d.tspeed = THROW_FWD + (lastZap ? 3 : 0); d.tumble = 0;
   } else {
@@ -1808,6 +1831,7 @@ function doThrow() {
 }
 function mount(d) {
   riding = d; d.local = true; d.state = DST.ridden; d.squash = 0; if (d.jaw) d.roar = 1;
+  diaryNote('ride', 'A dinosaur let me ride it. Good dinosaur.', 600);
   up.copy(d.up); ortho(facing); camFwd.copy(facing);
   height = d.topH; vy = 0; grounded = true; usedFlip = false; flipT = -1; slide = null;
 }
@@ -1822,6 +1846,144 @@ function dismount(jump, dir) {
   lastRide = d; remountAfter = simT + 900;
 }
 const NOSE_OBS = { p: FACE_DIR, a: NOSE_AX + 0.08 };
+// ======================= FEEL + SMALL MOMENTS + PLAY DIARY =======================
+// Momentum: Tuto has a real velocity. The stick sets where he wants to go; he gets there a beat later,
+// carries past the stop, and a hard reversal at speed makes him skid and dig in before turning.
+const vel = new THREE.Vector3(), tmpV3 = new THREE.Vector3(), _fdir = new THREE.Vector3(), _mdir = new THREE.Vector3();
+let skidT = 0, skidDir = new THREE.Vector3(), stepPh = 0, landVy = 0;
+// dust puffs: little soft clouds for skids, landings and running feet
+const PUFFS = [], puffMat = new THREE.MeshBasicMaterial({ color: 0xFFF3D6, transparent: true, opacity: 0.8, depthWrite: false }); puffMat.userData.outlineParameters = { visible: false };
+const puffGeo = new THREE.IcosahedronGeometry(0.16, 1);
+function puff(p, u, n, size = 1, spread = 0.5) {
+  for (let i = 0; i < n; i++) {
+    let o = PUFFS.find(x => !x.on); if (!o) { if (PUFFS.length > 40) return; o = { m: new THREE.Mesh(puffGeo, puffMat.clone()), on: false }; o.m.material.userData.outlineParameters = { visible: false }; scene.add(o.m); PUFFS.push(o); }
+    const r = new THREE.Vector3(Math.random() - .5, 0, Math.random() - .5); r.addScaledVector(u, -r.dot(u)).normalize().multiplyScalar(spread * (0.4 + Math.random() * 0.6));
+    o.on = true; o.t = 0; o.life = 0.45 + Math.random() * 0.25; o.size = size * (0.7 + Math.random() * 0.6);
+    o.m.position.copy(p).add(r); o.v = r.multiplyScalar(2.2).addScaledVector(u, 0.6 + Math.random() * 0.6); o.m.visible = true;
+  }
+}
+function puffStep(dt) {
+  for (const o of PUFFS) if (o.on) {
+    o.t += dt; const k = o.t / o.life; if (k >= 1) { o.on = false; o.m.visible = false; continue; }
+    o.m.position.addScaledVector(o.v, dt); o.v.multiplyScalar(1 - 3 * dt);
+    o.m.scale.setScalar(o.size * (0.5 + k)); o.m.material.opacity = 0.75 * (1 - k);
+  }
+}
+const footAt = (s = 0) => tmpV3.copy(up).multiplyScalar(R + height + 0.05).addScaledVector(facing, s);
+// walking on the ground: returns the distance to travel this frame (along vel)
+function feelStep(dt, move, mag, zapping) {
+  const maxS = (zapping ? ZAP_SPEED : SPEED) * (gliding ? 1.15 : 1) * (holding ? HOLD_MULT : 1);
+  vel.addScaledVector(up, -vel.dot(up));
+  let sp = vel.length();
+  const want = mag > 0.08 ? maxS * mag : 0;
+  if (grounded && skidT <= 0 && mag > 0.5 && sp > SPEED * 0.6 && vel.dot(move) < -0.45 * sp) {
+    skidT = 0.3; skidDir.copy(vel).normalize(); setExpr('shocked', 400, simT); puff(footAt(0.2), up, 5, 1.1, 0.4);
+    diaryNote('skid', 'Slammed the brakes. Sneakers squeaked.');
+  }
+  if (skidT > 0) {
+    skidT -= dt; sp = Math.max(0, sp - 22 * dt); vel.copy(skidDir).multiplyScalar(sp);
+    if (Math.random() < dt * 30) puff(footAt(0.15), up, 1, 0.8, 0.3);
+    if (skidT <= 0 || sp < 0.3) { skidT = 0; if (mag > 0.08) { vel.copy(move).multiplyScalar(Math.max(sp, 1.5)); facing.copy(move); } }
+  } else {
+    if (mag > 0.08 && sp > 0.05) {          // keep speed through turns: swing the heading, then ease the speed
+      const dir = _fdir.copy(vel).normalize(), a = signedAngle(dir, move);
+      dir.applyAxisAngle(up, a * Math.min(1, (grounded ? 10 : 3.5) * dt)); vel.copy(dir).multiplyScalar(sp);
+    } else if (mag > 0.08) vel.copy(move).multiplyScalar(0.01);
+    const acc = grounded ? (want > sp ? 13 + (zapping ? 8 : 0) : 8) : (want > sp ? 4 : 1.2);
+    sp += THREE.MathUtils.clamp(want - sp, -acc * dt, acc * dt); vel.setLength(Math.max(0, sp));
+  }
+  // feet: a little puff on hard steps when running fast
+  if (grounded && sp > SPEED * 0.85) { stepPh += dt * (6 + 9 * Math.min(1, sp / SPEED)); if (stepPh > Math.PI) { stepPh -= Math.PI; if (Math.random() < (zapping ? 0.9 : 0.45)) puff(footAt(-0.15), up, 1, 0.7, 0.25); } }
+  return sp * dt;
+}
+// Small moments while he stands around, before the breakdance kicks in
+const IDLE_MOMENTS = [[2.6, 1.8, 'breath'], [4.9, 2.2, 'look'], [7.6, 1.9, 'mitts'], [10.0, 1.6, 'tap']];
+function idleMoment(ch, it) {
+  const P = ch.parts, body = ch.body;
+  for (const [t0, len, kind] of IDLE_MOMENTS) {
+    if (it < t0 || it > t0 + len) continue;
+    if (kind === 'tap' && diaryHas('trooper')) continue;      // only a hint until the secret's found
+    const u = (it - t0) / len, k = Math.sin(Math.PI * u), e = Math.min(1, Math.min(u, 1 - u) * 6);
+    if (kind === 'breath') {            // a deep breath in, a slow breath out
+      const inh = Math.sin(Math.PI * Math.min(1, u * 1.6)), out = u > 0.62 ? Math.sin(Math.PI * (u - 0.62) / 0.38) : 0;
+      P.torso.scale.multiplyScalar(1 + 0.1 * inh); P.shL.rotation.z -= 0.28 * inh; P.shR.rotation.z += 0.28 * inh;
+      P.head.rotation.x -= 0.2 * inh - 0.12 * out; body.position.y += 0.04 * inh - 0.04 * out;
+      if (u > 0.62 && u < 0.66 && !ch._puffed) { ch._puffed = true; puff(tmpV3.copy(ch.root.position).addScaledVector(up, 1.0).addScaledVector(facing, 0.35), up, 2, 0.5, 0.1); }
+      if (u < 0.1) ch._puffed = false;
+    } else if (kind === 'look') {      // glance left, glance right
+      const y = u < 0.45 ? 0.75 * Math.sin(Math.PI * u / 0.45) : -0.75 * Math.sin(Math.PI * (u - 0.45) / 0.55);
+      P.head.rotation.y = y * e; body.rotation.y = 0.25 * y * e;
+    } else if (kind === 'mitts') {     // tug the left mitten snug with the right hand
+      const tug = Math.sin(u * Math.PI * 6) * 0.12 * e;
+      P.shL.rotation.x = -1.05 * e; P.shL.rotation.z = -0.38 + 0.75 * e; P.elL.rotation.x = -1.3 * e + tug;
+      P.shR.rotation.x = -0.85 * e; P.shR.rotation.z = 0.38 - 0.55 * e; P.elR.rotation.x = -0.6 * e;
+      P.head.rotation.x = 0.3 * e; body.rotation.x = 0.06 * e;
+    } else if (kind === 'tap') {       // tap tap tap on his own head... (tap him three times)
+      const tp = Math.max(0, Math.sin(u * Math.PI * 6)) * e;
+      P.shL.rotation.z = -0.38 - 2.3 * e; P.shL.rotation.x = -0.4 * e; P.elL.rotation.x = -1.2 * e - 0.35 * tp;
+      P.head.rotation.z = 0.08 * tp; body.position.y -= 0.02 * tp;
+    }
+  }
+}
+function skidPose(ch) {
+  const P = ch.parts, body = ch.body, k = Math.min(1, skidT / 0.08);
+  body.rotation.x = -0.4 * k; P.hipL.rotation.x = 0.55 * k; P.hipR.rotation.x = -0.35 * k;
+  P.shL.rotation.z = -1.3 * k - 0.38 * (1 - k); P.shR.rotation.z = 1.3 * k + 0.38 * (1 - k); P.shL.rotation.x = P.shR.rotation.x = -0.4 * k;
+}
+// ---- Play diary: snapshots taken the first time something happens, kept like a little scrapbook
+const DIARY_KEY = 'tuto-diary-v1';
+let diary = []; try { diary = JSON.parse(localStorage.getItem(DIARY_KEY) || '[]'); } catch (e) { diary = []; }
+let diaryPending = null; const diaryQ = [];
+const diaryHas = k => diary.some(d => d.k === k);
+function diaryNote(k, cap, delay = 350) {
+  if (diaryHas(k) || modeKind !== 'planet' || mode !== 'play') return;
+  if (diaryPending && diaryPending.k === k) return; if (diaryQ.some(q => q.k === k)) return;
+  const n = { k, cap, at: performance.now() + delay }; if (diaryPending) diaryQ.push(n); else diaryPending = n;
+}
+function diaryCapture() {             // called right after the frame renders
+  const P = diaryPending; if (!P || performance.now() < P.at) return; diaryPending = diaryQ.shift() || null; if (diaryPending) diaryPending.at = Math.max(diaryPending.at, performance.now() + 3400);
+  try {
+    const src = renderer.domElement, W = 240, H = 300, c = document.createElement('canvas'); c.width = W; c.height = H;
+    const sw = src.width, sh = src.height, a = W / H; let cw = sw, ch = sw / a; if (ch > sh) { ch = sh; cw = sh * a; }
+    c.getContext('2d').drawImage(src, (sw - cw) / 2, (sh - ch) / 2, cw, ch, 0, 0, W, H);
+    const img = c.toDataURL('image/jpeg', 0.72);
+    diary.push({ k: P.k, cap: P.cap, img, t: Date.now() });
+    try { localStorage.setItem(DIARY_KEY, JSON.stringify(diary)); } catch (e) { }
+    diaryToast(img, P.cap);
+  } catch (e) { }
+}
+const diaryBtn = document.getElementById('diaryBtn'), diaryEl = document.getElementById('diary');
+function diaryToast(img, cap) {
+  const t = document.createElement('div'); t.className = 'dToast'; t.innerHTML = `<img src="${img}" alt=""><span></span>`; t.querySelector('span').textContent = cap;
+  document.body.appendChild(t); requestAnimationFrame(() => t.classList.add('in'));
+  diaryBtn.classList.add('new'); diaryBtn.textContent = '📔';
+  setTimeout(() => { t.classList.add('out'); }, 2600); setTimeout(() => t.remove(), 3300);
+}
+let diaryPage = 0;
+function diaryShow(i) {
+  if (!diary.length) { diaryEl.querySelector('.dPage').innerHTML = '<p class="dEmpty">Nothing here yet.<br>Go do something for the first time.</p>'; diaryEl.querySelector('.dNum').textContent = ''; return; }
+  diaryPage = (i + diary.length) % diary.length; const d = diary[diaryPage], day = new Date(d.t);
+  diaryEl.querySelector('.dPage').innerHTML = `<img src="${d.img}" alt=""><p class="dCap"></p><p class="dDate"></p>`;
+  diaryEl.querySelector('.dCap').textContent = d.cap; diaryEl.querySelector('.dDate').textContent = day.toLocaleDateString(undefined, { month: 'short', day: 'numeric' });
+  diaryEl.querySelector('.dNum').textContent = (diaryPage + 1) + ' / ' + diary.length;
+}
+diaryBtn.addEventListener('click', () => { diaryBtn.classList.remove('new'); diaryEl.hidden = false; diaryShow(diary.length - 1); });
+diaryEl.querySelector('.dPrev').addEventListener('click', () => diaryShow(diaryPage - 1));
+diaryEl.querySelector('.dNext').addEventListener('click', () => diaryShow(diaryPage + 1));
+diaryEl.querySelector('.dClose').addEventListener('click', () => { diaryEl.hidden = true; });
+diaryEl.addEventListener('click', e => { if (e.target === diaryEl) diaryEl.hidden = true; });
+// vehicles say hello when you get close (instead of a prompt on the screen)
+function vehInvite(dt) {
+  const t = simT / 1000;
+  for (const v of VEHS) {
+    if (v.taken) continue;
+    const near = !drive && up.angleTo(v.up) * R < 2.6 && height < 1.5;
+    v.inv = (v.inv || 0) + ((near ? 1 : 0) - (v.inv || 0)) * Math.min(1, 5 * dt);
+    if (v.inv < 0.01) continue;
+    if (v.kind === 'pod') { v.root.position.copy(v.up).multiplyScalar(R + 0.35 + v.inv * 0.12 * Math.abs(Math.sin(t * 5))); v.wings.forEach((w, i) => { w.scale.setScalar(Math.max(0.001, v.inv * 0.55 * Math.max(0, Math.sin(t * 3)))); w.rotation.z = (i ? -1 : 1) * Math.sin(t * 14) * 0.3; }); }
+    else { const s = 1 + v.inv * 0.03 * Math.sin(t * 22); v.root.scale.set(v.scale, v.scale * s, v.scale); if (v.wheels) v.wheels[0].rotation.x = Math.sin(t * 3) * 0.4 * v.inv; }
+  }
+}
 // ======================= VEHICLES =======================
 // A motorcycle and a hover pod parked on the planet. Walk up and press the hand button to get in, jump to hop out.
 // The pod grows wings (wing button) and flies anywhere, including to the water planet, where it turns into a submarine.
@@ -1907,8 +2069,8 @@ function parkVehicle(v, u, f) {
   const m = buildMoto(), p = buildPod(); m.scale = V_SCALE; p.scale = V_SCALE;
   for (const v of [m, p]) { scene.add(v.root); v.shadow = vShadow(); VEHS.push(v); }
   const ax = new THREE.Vector3().copy(up).cross(facing).normalize();
-  parkVehicle(m, up.clone().applyAxisAngle(facing, 0.3).applyAxisAngle(ax, -0.05), facing);
-  parkVehicle(p, up.clone().applyAxisAngle(facing, -0.32).applyAxisAngle(ax, -0.05), facing);
+  parkVehicle(m, up.clone().applyAxisAngle(facing, 0.5).applyAxisAngle(ax, -0.12), facing);
+  parkVehicle(p, up.clone().applyAxisAngle(facing, -0.55).applyAxisAngle(ax, -0.12), facing);
 }
 // the water planet, full of sea life
 const WC = new THREE.Vector3(-0.62, 0.36, 0.7).normalize().multiplyScalar(56), WR = 13;
@@ -1995,6 +2157,7 @@ function enterVehicle(v) {
   v.taken = true; v.shadow.visible = true; up.copy(v.up); facing.copy(v.facing); ortho(facing); camFwd.copy(facing);
   vy = 0; grounded = true; slide = null; flipT = -1; usedFlip = false; dancing = false; idleTime = 0;
   setExpr('laugh', 900, simT); vehBurst(v.root.position, up, 10);
+  if (v.kind === 'moto') diaryNote('moto', 'Found a bike just sitting there. It fits me perfectly.', 900); else diaryNote('pod', 'The pod hums when you sit in it.', 900);
   document.body.classList.add('driving'); vehUI();
 }
 function exitVehicle() {
@@ -2011,7 +2174,7 @@ function vehUI() {
 function takeOff() {
   const pos = new THREE.Vector3().copy(up).multiplyScalar(R + height + 0.3);
   const fwd = facing.clone().addScaledVector(up, 0.5).normalize();
-  FL = { pos, fwd, bank: 0, landing: false, near: 'main', speed: 6 }; drive.mode = 'fly'; setExpr('laugh', 900, simT); vehBurst(pos, up, 14); vehUI();
+  FL = { pos, fwd, bank: 0, landing: false, near: 'main', speed: 6 }; drive.mode = 'fly'; diaryNote('fly', 'Wings! The whole head-planet fits under me.', 1600); setExpr('laugh', 900, simT); vehBurst(pos, up, 14); vehUI();
 }
 function wingToggle() {
   if (!drive || drive.v.kind !== 'pod') return;
@@ -2025,8 +2188,9 @@ const _fq = new THREE.Quaternion(), _fg = new THREE.Vector3(), _fr = new THREE.V
 function flightStep(dt, ix, iy, boost) {
   const F = FL, dW = F.pos.distanceTo(WC), dM = F.pos.length();
   F.near = (dW - WR) < (dM - R) ? 'water' : 'main';
+  if (dW < WR + 9 && dW > WR) diaryNote('water', 'A planet made of water. Somebody lives in there.', 0);
   const inWater = dW < WR;
-  if (inWater && drive.mode !== 'sub') { drive.mode = 'sub'; F.speed = Math.min(F.speed, 6); vehBurst(F.pos, _fg.copy(F.pos).sub(WC).normalize(), 18); setExpr('shocked', 700, simT); F.landing = false; vehUI(); }
+  if (inWater && drive.mode !== 'sub') { drive.mode = 'sub'; diaryNote('sub', 'Under the water. The fish don\'t mind me.', 1800); F.speed = Math.min(F.speed, 6); vehBurst(F.pos, _fg.copy(F.pos).sub(WC).normalize(), 18); setExpr('shocked', 700, simT); F.landing = false; vehUI(); }
   if (!inWater && drive.mode === 'sub') { drive.mode = 'fly'; vehBurst(F.pos, _fg.copy(F.pos).sub(WC).normalize(), 18); setExpr('laugh', 700, simT); vehUI(); }
   const g = F.near === 'water' ? _fg.copy(F.pos).sub(WC).normalize() : _fg.copy(F.pos).normalize();
   const sub = drive.mode === 'sub';
@@ -2209,12 +2373,18 @@ function update(dt) {
   const zapping = controls && (zapOn || keys.has('ShiftLeft') || keys.has('ShiftRight'));
   const zapRun = zapping && mag > 0.08;
   if (FL) flightStep(dt, ix, iy, zapping);
-  if (mag > 0.08 && !heldBy && !FL) {
-    const dist = (zapping ? ZAP_SPEED : SPEED) * (gliding ? 1.15 : 1) * (riding ? RIDE_MULT : 1) * (drive ? (drive.mode === 'moto' ? 2.6 : 2.0) : 1) * (holding ? HOLD_MULT : 1) * mag * dt;
-    tmpQ.setFromAxisAngle(tmpV2.copy(up).cross(move).normalize(), dist / (R + height * 0.5));
-    transport(tmpQ); move.applyQuaternion(tmpQ); ortho(move);
-    const a = signedAngle(facing, move);
-    facing.applyAxisAngle(up, a * Math.min(1, (drive ? 3.2 : riding ? 6 : 14) * dt));
+  const walking = !heldBy && !FL && !drive && !riding;
+  let feelDist = 0;
+  if (walking) feelDist = feelStep(dt, move, mag, zapping); else { vel.set(0, 0, 0); skidT = 0; }
+  if (((mag > 0.08 && !walking) || feelDist > 1e-5) && !heldBy && !FL) {
+    const mdir = walking ? _mdir.copy(vel).normalize() : move;
+    const dist = walking ? feelDist : (zapping ? ZAP_SPEED : SPEED) * (riding ? RIDE_MULT : 1) * (drive ? (drive.mode === 'moto' ? 2.6 : 2.0) : 1) * (holding ? HOLD_MULT : 1) * mag * dt;
+    tmpQ.setFromAxisAngle(tmpV2.copy(up).cross(mdir).normalize(), dist / (R + height * 0.5));
+    transport(tmpQ); move.applyQuaternion(tmpQ); ortho(move); vel.applyQuaternion(tmpQ);
+    if (!walking || (skidT <= 0 && mag > 0.08)) {
+      const a = signedAngle(facing, move);
+      facing.applyAxisAngle(up, a * Math.min(1, (drive ? 3.2 : riding ? 6 : 14) * dt));
+    }
     const ca = signedAngle(camFwd, facing);
     if (mode === 'play' && !camHeld && Math.abs(ca) < 2.2) camFwd.applyAxisAngle(up, ca * Math.min(1, 0.9 * mag * dt));
   }
@@ -2292,7 +2462,7 @@ function update(dt) {
     if (drive) { if (!FL) exitVehicle(); }
     else if (riding) dismount(true, mag > 0.1 ? move : null);
     else if (grounded) { vy = JUMP_V; grounded = false; usedFlip = false; }
-    else if (!usedFlip && launchLeft <= 0 && !holding) { vy = FLIP_V; usedFlip = true; flipT = 0; setExpr('shocked', 900, simT); }
+    else if (!usedFlip && launchLeft <= 0 && !holding) { vy = FLIP_V; usedFlip = true; flipT = 0; setExpr('shocked', 900, simT); diaryNote('flip', 'First flip. The planet spun, not me.', 250); }
   }
   input.jump = false;
 
@@ -2301,7 +2471,7 @@ function update(dt) {
     if (dinoUnder && canRide(dinoUnder)) mount(dinoUnder);
     else if (dinoUnder) { height = floor; vy = 12.5; grounded = false; usedFlip = false; flipT = -1; airT = 0; dinoUnder.squash = 0; }  // someone's on it: bounce
     else if (bouncy) launchToStick();
-    else { height = floor; vy = 0; grounded = true; airT = 0; usedFlip = false; flipT = -1; launchLeft = 0; slide = null; }
+    else { if (vy < -8.5) puff(tmpV3.copy(up).multiplyScalar(R + floor + 0.05), up, 7, 1.1, 0.7); height = floor; vy = 0; grounded = true; airT = 0; usedFlip = false; flipT = -1; launchLeft = 0; slide = null; }
   };
   if (drive) {
     if (!FL) height = floor + (drive.v.kind === 'pod' ? 0.55 : 0) + drive.v.seat * drive.v.scale;
@@ -2352,11 +2522,13 @@ function update(dt) {
   }
 
   // breakdance timer
-  if (mode === 'play' && grounded && !sitting && !riding && !drive && !holding && mag < 0.05) idleTime += dt; else idleTime = 0;
+  if (mode === 'play' && grounded && !sitting && !riding && !drive && !holding && mag < 0.05 && vel.length() < 0.3) idleTime += dt; else idleTime = 0;
+  if (idleTime > 2.7) diaryNote('breath', 'Stood still for once. Took a deep breath.', 500);
   const wasDancing = dancing;
   dancing = idleTime > BD_START;
   if (wasDancing && !dancing) setExpr('smile', 0, simT);
   if (dancing) {
+    diaryNote('dance', 'Nobody was watching, so I danced.', 2400);
     const ph = (idleTime - BD_START) % 7.8;
     if (ph < 2.4) { if (face.expr !== 'smile' && !face.until) setExpr('smile', 0, simT); }
     else if (ph >= 2.8 && ph < 6.0) { if (face.expr !== 'laugh') setExpr('laugh', 0, simT); }
@@ -2379,10 +2551,14 @@ function update(dt) {
     sx = local.x * mag; sz = local.z * mag;
   }
   lastMag = mag; lastSX = sx; lastSZ = sz; lastZap = zapRun;
-  poseCharacter(hero, { mag, zr: zapRun, grounded: grounded || !!riding, sit: sitAmt, dance: dancing ? (idleTime - BD_START) % 7.8 : -1,
+  const animMag = (riding || drive) ? mag : Math.min(1, vel.length() / SPEED);
+  poseCharacter(hero, { mag: animMag, zr: zapRun, grounded: grounded || !!riding, sit: sitAmt, dance: dancing ? (idleTime - BD_START) % 7.8 : -1,
     flipT, airT, glide: glideAmt, hold: holdAmt, ride: rideAmt, sx, sz, held: !!heldBy, gliding, t: simT / 1000, tms: simT }, dt);
+  if (skidT > 0) skidPose(hero);
+  else if (!dancing && idleTime > 0 && grounded && !riding && !drive && !holding && sitAmt < 0.05) idleMoment(hero, idleTime);
   if (drive) vehPlace(dt, mag, floor); else hero.root.visible = true;
-  vehWorld(dt);
+  vehWorld(dt); vehInvite(dt); puffStep(dt);
+  if (gliding) diaryNote('glide', 'Held the button and floated down slow, like a seed.');
   if (hero.trooper) trooperPose(hero, trWeight(glideAmt, holdAmt, flipT >= 0, heldBy, sitAmt, dancing), recoil);
   recoil = Math.max(0, recoil - dt * 6); fireCd -= dt;
   if (trooper && controls && mode === 'play' && !heldBy && fireCd <= 0 && (fireHeld || keys.has('KeyF'))) fireBall();
@@ -4477,7 +4653,7 @@ jmEl('jmBpmU').addEventListener('pointerdown', e => { e.preventDefault(); jaTemp
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (modeKind === 'planet') { update(dt); effect.render(scene, camera); }
+  if (modeKind === 'planet') { update(dt); effect.render(scene, camera); if (diaryPending) diaryCapture(); }
   else if (modeKind === 'maker') { mkUpdate(dt); effect.render(MK.scene, MK.cam); }
   else if (modeKind === 'mocap') { mcUpdate(dt); effect.render(MC.scene, MC.cam); }
   else if (modeKind === 'jam') { jmUpdate(dt); effect.render(JM.scene, JM.cam); }
