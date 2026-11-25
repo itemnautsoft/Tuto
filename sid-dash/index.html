@@ -157,6 +157,8 @@
     <div class="grid" id="charGrid"></div>
     <div class="sect" data-t="caps">Caps</div>
     <div class="grid" id="capGrid"></div>
+    <div class="sect" data-t="poos">Poo hats (Scott)</div>
+    <div class="grid" id="pooGrid"></div>
     <button class="btn gray small" id="shopBack" data-t="back">Back</button>
   </div>
 </div>
@@ -181,14 +183,14 @@ const TXT = {
     by:'a Trouble Makers game', help:'Swipe ← → to move · Swipe ↑ to jump & flip', paused:'Paused', resume:'Resume',
     restart:'Restart stage', menu:'Menu', over:'Out of hearts!', again:'Try again · Stage {n}', points:'Points', stage:'Stage {n}',
     street:'Street', school:'School', missed:'Missed a star!<br>Run the stage again', next:'⭐⭐⭐<br>Stage {n}!',
-    home:'🏠 Sid made it home!<br>Next stop: school', characters:'Characters', caps:'Caps', back:'Back', free:'Free',
+    home:'🏠 Sid made it home!<br>Next stop: school', characters:'Characters', caps:'Caps (Sid)', poos:'Poo hats (Scott)', back:'Back', free:'Free',
     select:'Use', selected:'Using', buy:'Buy', wet:'Wet floor! Slip!', ouch:'Ouch!', best:'Best: {s} points · Stage {n}',
     stats:'Stage {n} · {p} points · +{c} coins', go:'Go!' , start:'Stage {n}<br><small>Find the 3 stars!</small>' },
   es: { play:'Jugar', cont:'Continuar · Etapa {n}', shop:'Tienda', musicOn:'♪ Música: Sí', musicOff:'♪ Música: No', lang:'English',
     by:'un juego de Trouble Makers', help:'Desliza ← → para moverte · Desliza ↑ para saltar y dar vuelta', paused:'Pausa', resume:'Seguir',
     restart:'Reiniciar etapa', menu:'Menú', over:'¡Sin corazones!', again:'Otra vez · Etapa {n}', points:'Puntos', stage:'Etapa {n}',
     street:'Calle', school:'Escuela', missed:'¡Te faltó una estrella!<br>Corre la etapa otra vez', next:'⭐⭐⭐<br>¡Etapa {n}!',
-    home:'🏠 ¡Sid llegó a su casa!<br>Ahora: la escuela', characters:'Personajes', caps:'Gorras', back:'Volver', free:'Gratis',
+    home:'🏠 ¡Sid llegó a su casa!<br>Ahora: la escuela', characters:'Personajes', caps:'Gorras (Sid)', poos:'Popós (Scott)', back:'Volver', free:'Gratis',
     select:'Usar', selected:'Usando', buy:'Comprar', wet:'¡Piso mojado! ¡Resbalón!', ouch:'¡Auch!', best:'Récord: {s} puntos · Etapa {n}',
     stats:'Etapa {n} · {p} puntos · +{c} monedas', go:'¡Vamos!', start:'Etapa {n}<br><small>¡Busca las 3 estrellas!</small>' }
 };
@@ -196,16 +198,27 @@ const t = (k, v={}) => (TXT[save.lang][k] || TXT.en[k] || k).replace(/\{(\w)\}/g
 
 // ---------------- Saved progress (this browser only) ----------------
 const KEY = 'sidDash.v1';
-const DEFAULTS = () => ({ coins:0, owned:['sid','cap-black'], char:'sid', cap:'black', bestScore:0, bestStage:1,
+const DEFAULTS = () => ({ coins:0, owned:['sid','cap-black','poo-brown'], char:'sid', cap:'black', poo:'brown', bestScore:0, bestStage:1,
   lastStage:1, lang:'en', music:true, seenHelp:false });
 let save = DEFAULTS();
 try { const s = JSON.parse(localStorage.getItem(KEY) || '{}'); save = Object.assign(DEFAULTS(), s); } catch (e) {}
+if (!save.owned.includes('poo-brown')) save.owned.push('poo-brown');
 function persist() { try { localStorage.setItem(KEY, JSON.stringify(save)); } catch (e) {} }
 
 // ---------------- Characters & caps ----------------
 const CHARS = {
   sid:   { name:'Sid',   price:0,   skin:'#5fb3e8', skinDark:'#3d8fd0', limb:'#2f62c9', limbDark:'#1f468f', body:'#1d1d24' },
-  scott: { name:'Scott', price:300, skin:'#e2523f', skinDark:'#b8382a', limb:'#9e2a1f', limbDark:'#6e1c14', body:'#1d1d24' }
+  scott: { name:'Scott', price:300, skin:'#e2523f', skinDark:'#b8382a', limb:'#9e2a1f', limbDark:'#6e1c14', body:'#1d1d24',
+           crazy:true, feet:3, hat:'poo' }
+};
+// Scott wears a poo with crazy eyes instead of a cap
+const POOS = {
+  brown:  { price:0,   c:'#7a4a24' },
+  gold:   { price:100, c:'#e8b923' },
+  pink:   { price:80,  c:'#f08cb8' },
+  green:  { price:80,  c:'#5cbf4a' },
+  blue:   { price:120, c:'#4a8fe0' },
+  purple: { price:150, c:'#9b5bd6' }
 };
 const CAPS = {
   black:  { price:0,   c:'#1d1d24' },
@@ -276,11 +289,14 @@ function drawSid(c, cx, cy, s, o) {
   c.lineJoin = 'round';
   const ink = '#1d1d24';
   // shoes (blue blocks, floating)
-  const l1 = Math.max(0, Math.sin(run)) * 0.2, l2 = Math.max(0, -Math.sin(run)) * 0.2;
-  for (const [sx, lift] of [[-0.24, l1], [0.24, l2]]) {
+  const feet = ch.feet === 3
+    ? [-0.31, 0, 0.31].map((x, i) => [x, Math.max(0, Math.sin(run + i * 2.094)) * 0.2])
+    : [[-0.24, Math.max(0, Math.sin(run)) * 0.2], [0.24, Math.max(0, -Math.sin(run)) * 0.2]];
+  const fw = ch.feet === 3 ? 0.8 : 1;
+  for (const [sx, lift] of feet) {
     c.beginPath();
-    if (front) { c.rect(sx - 0.13, -0.17 - lift, 0.26, 0.17); }
-    else { c.moveTo(sx - 0.14, -lift); c.lineTo(sx + 0.13, -lift); c.lineTo(sx + 0.15, -0.16 - lift); c.lineTo(sx - 0.1, -0.19 - lift); c.closePath(); }
+    if (front) { c.rect(sx - 0.13 * fw, -0.17 - lift, 0.26 * fw, 0.17); }
+    else { c.moveTo(sx - 0.14 * fw, -lift); c.lineTo(sx + 0.13 * fw, -lift); c.lineTo(sx + 0.15 * fw, -0.16 - lift); c.lineTo(sx - 0.1 * fw, -0.19 - lift); c.closePath(); }
     c.fillStyle = ch.limb; c.fill(); c.strokeStyle = ink; c.lineWidth = 0.035; c.stroke();
     c.fillStyle = 'rgba(255,255,255,.25)'; c.fillRect(sx - 0.1, -0.15 - lift, 0.08, 0.04);
   }
@@ -302,9 +318,11 @@ function drawSid(c, cx, cy, s, o) {
   if (front) {
     // big googly eyes
     for (const ex of [-0.17, 0.17]) {
+      // Scott's pupils: left one looks up, right one looks down
+      const px = ch.crazy ? ex : ex + 0.02, py = ch.crazy ? hy - 0.04 + (ex < 0 ? -0.085 : 0.085) : hy - 0.02;
       c.beginPath(); c.arc(ex, hy - 0.04, 0.155, 0, Math.PI * 2); c.fillStyle = '#fff'; c.fill(); c.lineWidth = 0.035; c.stroke();
-      c.beginPath(); c.arc(ex + 0.02, hy - 0.02, 0.06, 0, Math.PI * 2); c.fillStyle = ink; c.fill();
-      c.beginPath(); c.arc(ex + 0.04, hy - 0.05, 0.018, 0, Math.PI * 2); c.fillStyle = '#fff'; c.fill();
+      c.beginPath(); c.arc(px, py, 0.06, 0, Math.PI * 2); c.fillStyle = ink; c.fill();
+      c.beginPath(); c.arc(px + 0.02, py - 0.03, 0.018, 0, Math.PI * 2); c.fillStyle = '#fff'; c.fill();
     }
     // lower part of the face is black (like the drawing)
     c.save();
@@ -320,6 +338,8 @@ function drawSid(c, cx, cy, s, o) {
     c.restore();
     c.beginPath(); c.arc(0, hy, 0.43, 0, Math.PI * 2); c.strokeStyle = ink; c.lineWidth = 0.04; c.stroke();
   }
+  if (ch.hat === 'poo') drawPoo(c, hy, (POOS[o.poo] || POOS.brown).c, front, ink);
+  else {
   // cap (dome + brim; brim to the side in front view, toward us from the back like a backwards cap)
   c.beginPath(); c.arc(0, hy - 0.06, 0.44, Math.PI * 1.08, Math.PI * 1.92); c.closePath();
   c.fillStyle = capC; c.fill(); c.strokeStyle = ink; c.lineWidth = 0.04; c.stroke();
@@ -328,7 +348,30 @@ function drawSid(c, cx, cy, s, o) {
   if (front) c.ellipse(0.4, hy - 0.2, 0.2, 0.07, -0.2, 0, Math.PI * 2);
   else c.ellipse(0, hy - 0.2, 0.27, 0.08, 0, 0, Math.PI);
   c.fillStyle = shade(capC.length === 7 ? capC : '#1d1d24', 0.8); c.fill(); c.lineWidth = 0.035; c.stroke();
+  }
   c.restore();
+}
+
+// A swirly poo that sits on Scott's head. From the front you can see its crazy eyes.
+function drawPoo(c, hy, col, front, ink) {
+  const tiers = [[0, hy - 0.4, 0.34, 0.13], [0.01, hy - 0.54, 0.26, 0.11], [-0.01, hy - 0.66, 0.17, 0.085]];
+  for (const [x, y, rx, ry] of tiers) {
+    c.beginPath(); c.ellipse(x, y, rx, ry, 0, 0, Math.PI * 2);
+    c.fillStyle = col; c.fill(); c.strokeStyle = ink; c.lineWidth = 0.035; c.stroke();
+    c.beginPath(); c.ellipse(x - rx * 0.35, y - ry * 0.35, rx * 0.35, ry * 0.3, 0, 0, Math.PI * 2);
+    c.fillStyle = 'rgba(255,255,255,.22)'; c.fill();
+  }
+  c.beginPath(); c.moveTo(-0.06, hy - 0.72);
+  c.quadraticCurveTo(0.02, hy - 0.86, 0.12, hy - 0.84);
+  c.quadraticCurveTo(0.06, hy - 0.78, 0.07, hy - 0.72); c.closePath();
+  c.fillStyle = col; c.fill(); c.stroke();
+  if (front) {
+    for (const ex of [-0.1, 0.1]) {
+      const ey = hy - 0.55;
+      c.beginPath(); c.arc(ex, ey, 0.068, 0, Math.PI * 2); c.fillStyle = '#fff'; c.fill(); c.lineWidth = 0.025; c.stroke();
+      c.beginPath(); c.arc(ex, ey + (ex < 0 ? -0.035 : 0.035), 0.03, 0, Math.PI * 2); c.fillStyle = ink; c.fill();
+    }
+  }
 }
 
 // ---------------- Items ----------------
@@ -818,7 +861,7 @@ function drawPlayer() {
   const q = P(p.x, p.y, PZ);
   const lean = (((p.lane - 1) * LANE) - p.x) * 0.12;
   drawSid(ctx, q[0], q[1], q[2], { view:'back', run:p.air ? 0.8 : p.run, flip:p.air ? -p.flip : 0,
-    wobble:p.slip > 0 ? Math.sin(p.slip * 30) * 0.35 : lean, char:save.char, cap:save.cap });
+    wobble:p.slip > 0 ? Math.sin(p.slip * 30) * 0.35 : lean, char:save.char, cap:save.cap, poo:save.poo });
 }
 
 // ---------------- HUD ----------------
@@ -872,9 +915,9 @@ function gameOver() {
 function toMenu() { state = 'menu'; musicStop(); $('hud').style.display = 'none'; newGame(1, true); updateMenuText(); show('menu'); }
 
 // shop
-function itemCanvas(charKey, capKey) {
+function itemCanvas(charKey, capKey, pooKey) {
   const c = document.createElement('canvas'); c.width = 120; c.height = 132;
-  const x = c.getContext('2d'); drawSid(x, 60, 126, 58, { view:'front', run:0, char:charKey, cap:capKey }); return c;
+  const x = c.getContext('2d'); drawSid(x, 60, 126, 58, { view:'front', run:0, char:charKey, cap:capKey, poo:pooKey }); return c;
 }
 function renderShop() {
   updateMenuText();
@@ -883,7 +926,7 @@ function renderShop() {
     for (const e of entries) {
       const owned = save.owned.includes(e.id), sel = e.selected();
       const d = document.createElement('div'); d.className = 'item' + (sel ? ' sel' : '');
-      d.appendChild(itemCanvas(e.char, e.cap));
+      d.appendChild(itemCanvas(e.char, e.cap, e.poo));
       const name = document.createElement('div'); name.textContent = e.name; d.appendChild(name);
       const b = document.createElement('button');
       if (owned) { b.textContent = sel ? t('selected') : t('select'); b.disabled = sel; b.onclick = () => { e.use(); persist(); renderShop(); }; }
@@ -893,10 +936,12 @@ function renderShop() {
       d.appendChild(b); grid.appendChild(d);
     }
   };
-  mk($('charGrid'), Object.entries(CHARS).map(([k, v]) => ({ id:k, name:v.name, price:v.price, char:k, cap:save.cap,
+  mk($('charGrid'), Object.entries(CHARS).map(([k, v]) => ({ id:k, name:v.name, price:v.price, char:k, cap:save.cap, poo:save.poo,
     selected:() => save.char === k, use:() => save.char = k })));
-  mk($('capGrid'), Object.entries(CAPS).map(([k, v]) => ({ id:'cap-' + k, name:k[0].toUpperCase() + k.slice(1), price:v.price, char:save.char, cap:k,
+  mk($('capGrid'), Object.entries(CAPS).map(([k, v]) => ({ id:'cap-' + k, name:k[0].toUpperCase() + k.slice(1), price:v.price, char:'sid', cap:k,
     selected:() => save.cap === k, use:() => save.cap = k })));
+  mk($('pooGrid'), Object.entries(POOS).map(([k, v]) => ({ id:'poo-' + k, name:k[0].toUpperCase() + k.slice(1), price:v.price, char:'scott', poo:k,
+    selected:() => save.poo === k, use:() => save.poo = k })));
 }
 let shopFrom = 'menu';
 function openShop(from) { shopFrom = from; renderShop(); show('shop'); }
@@ -921,7 +966,7 @@ document.addEventListener('visibilitychange', () => { if (document.hidden && sta
 const mc = $('menuSid'), mctx = mc.getContext('2d');
 function drawMenuSid(time) {
   mctx.clearRect(0, 0, mc.width, mc.height);
-  drawSid(mctx, 170, 360 - Math.abs(Math.sin(time * 3)) * 12, 150, { view:'front', run:time * 6, char:save.char, cap:save.cap });
+  drawSid(mctx, 170, 360 - Math.abs(Math.sin(time * 3)) * 12, 150, { view:'front', run:time * 6, char:save.char, cap:save.cap, poo:save.poo });
 }
 // app icon (from the drawing: Sid on a blue square)
 try {
