@@ -234,6 +234,30 @@
   .mcRow button { font:inherit; border:3px solid #161216; border-radius:12px; color:#161216; box-shadow:2px 2px 0 #161216; }
   .mcRow .nm { flex:1; font-size:20px; padding:6px 8px; background:#FF8A1F; text-align:left; }
   .mcRow .del { font-size:18px; padding:6px 10px; background:#fff; }
+  #rollBtn { position:fixed; top:14px; right:176px; z-index:4; width:46px; height:46px; border-radius:50%; border:4px solid rgba(20,16,24,.55); background:rgba(255,255,255,.12); font-size:21px; line-height:1; padding:0; }
+  body.intro #rollBtn, body.m-maker #rollBtn, body.m-jam #rollBtn, body.m-mocap #rollBtn, body.m-frame #rollBtn { display:none; }
+  .cmr { position:fixed; inset:0; z-index:25; background:#fff; color:#141018; display:none; flex-direction:column; box-sizing:border-box; padding:calc(env(safe-area-inset-top,0px) + 16px) 14px 0; font-family:'Patrick Hand','Comic Sans MS',cursive; }
+  .cmr.on { display:flex; }
+  .cmh { display:flex; flex-wrap:wrap; gap:8px; align-items:center; padding-bottom:12px; border-bottom:4px solid #141018; }
+  .cmh b { flex:1 0 100%; font-size:30px; line-height:1; margin-bottom:4px; }
+  .cmr button { font:700 16px 'Patrick Hand','Comic Sans MS',cursive; color:#141018; background:#fff; border:3px solid #141018; border-radius:10px; box-shadow:3px 3px 0 #141018; padding:5px 11px; }
+  .cmr button:active { transform:translate(2px,2px); box-shadow:1px 1px 0 #141018; }
+  .cmr .cms { background:#D9F24E; }
+  .cmx { position:absolute; right:14px; top:calc(env(safe-area-inset-top,0px) + 12px); width:44px; height:44px; border-radius:50%!important; padding:0!important; }
+  .cmg { flex:1; overflow-y:auto; display:grid; grid-template-columns:repeat(3,1fr); gap:10px; padding:14px 2px 30px; align-content:start; -webkit-overflow-scrolling:touch; }
+  .cmg .cmt { position:relative; padding:0 0 177.78%!important; height:0; overflow:hidden; border-radius:6px!important; background:#eee!important; }
+  .cmg .cmt img { position:absolute; inset:0; width:100%; height:100%; object-fit:cover; display:block; }
+  .cmg .tag { position:absolute; z-index:1; left:4px; bottom:6px; transform:rotate(-3deg); background:#D9F24E; border:2px solid #141018; border-radius:5px; padding:0 5px; font-size:13px; white-space:nowrap; }
+  .cmg .fav { position:absolute; z-index:1; right:5px; top:3px; font-size:18px; }
+  .cme { grid-column:1/-1; font-size:18px; line-height:1.35; text-align:center; padding:30px 10px; }
+  .cmv { position:absolute; inset:0; z-index:5; background:#fff; display:none; flex-direction:column; padding:calc(env(safe-area-inset-top,0px) + 14px) 12px 16px; box-sizing:border-box; }
+  .cmv.on { display:flex; }
+  .cmvm { flex:1; min-height:0; display:flex; align-items:center; justify-content:center; }
+  .cmvm img, .cmvm video { max-width:100%; max-height:100%; border:4px solid #141018; border-radius:8px; box-shadow:5px 5px 0 #141018; background:#eee; }
+  .cmvb { display:flex; flex-wrap:wrap; gap:8px; justify-content:center; padding-top:14px; }
+  .cmf { position:fixed; left:14px; top:calc(env(safe-area-inset-top,0px) + 70px); z-index:9; pointer-events:none; background:#fff; border:3px solid #141018; border-radius:6px; box-shadow:4px 4px 0 #141018; padding:3px 10px; font-size:17px; font-weight:700; color:#141018; opacity:0; }
+  .cmf.on { animation:cmfa 1.8s ease-out; }
+  @keyframes cmfa { 0% { opacity:0; transform:rotate(-3deg) scale(.6); } 12% { opacity:1; transform:rotate(-3deg) scale(1.08); } 22% { transform:rotate(-3deg) scale(1); } 80% { opacity:1; } 100% { opacity:0; } }
 </style>
 <script type="importmap">
 { "imports": {
@@ -274,6 +298,7 @@
 <button id="act" aria-label="Pick up / throw"><svg class="i-grab" viewBox="0 0 48 48" width="38" height="38"><rect x="12" y="8" width="22" height="28" rx="11" fill="#E8502E" stroke="#141018" stroke-width="4"/><ellipse cx="35" cy="24" rx="6" ry="8.5" transform="rotate(28 35 24)" fill="#E8502E" stroke="#141018" stroke-width="4"/><rect x="13" y="34" width="20" height="8" rx="2" fill="#E8502E" stroke="#141018" stroke-width="4"/></svg><svg class="i-throw" viewBox="0 0 48 48" width="38" height="38"><path d="M10 38 Q10 12 34 12" fill="none" stroke="#141018" stroke-width="6" stroke-linecap="round"/><path d="M27 5 L36 12 L27 19" fill="none" stroke="#141018" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/></svg></button>
 <button id="fire" aria-label="Fire"><svg viewBox="0 0 48 32" width="44" height="30"><rect x="3" y="6" width="34" height="14" rx="2" fill="#1B1820" stroke="#141018" stroke-width="3"/><rect x="36" y="9" width="9" height="8" rx="2" fill="#4F4A5C" stroke="#141018" stroke-width="3"/><rect x="12" y="19" width="8" height="10" rx="1" fill="#1B1820" stroke="#141018" stroke-width="3"/></svg></button>
 <button id="diaryBtn" aria-label="Play diary">📓</button>
+<button id="rollBtn" aria-label="Camera roll">🎞️</button>
 <div id="diary" hidden><div class="dBook"><h2><span>Tuto's diary</span></h2><button class="dClose" aria-label="Close">✕</button>
   <div class="dPage"></div><div class="dNav"><button class="dPrev" aria-label="Previous page">←</button><span class="dNum"></span><button class="dNext" aria-label="Next page">→</button></div></div></div>
 <button id="wing" aria-label="Wings"><svg viewBox="0 0 48 32" width="46" height="30"><path d="M24 20 C16 6 6 4 2 8 C6 12 10 18 24 22Z" fill="#FBF5E8" stroke="#141018" stroke-width="3" stroke-linejoin="round"/><path d="M24 20 C32 6 42 4 46 8 C42 12 38 18 24 22Z" fill="#FBF5E8" stroke="#141018" stroke-width="3" stroke-linejoin="round"/><circle cx="24" cy="21" r="4" fill="#F4D452" stroke="#141018" stroke-width="3"/></svg></button>
@@ -4650,10 +4675,211 @@ jmEl('jmDel').addEventListener('pointerdown', e => { e.preventDefault(); jaStopT
 jmEl('jmBpmD').addEventListener('pointerdown', e => { e.preventDefault(); jaTempo(Math.max(60, JA.bpm - 4), Date.now()); });
 jmEl('jmBpmU').addEventListener('pointerdown', e => { e.preventDefault(); jaTempo(Math.min(150, JA.bpm + 4), Date.now()); });
 
+/* ---------- cameraman core: storage + Camera roll (shared across Itemnaut games) ---------- */
+function makeCamRoll(o) {
+  const $i = id => document.getElementById(id), P = o.prefix, CFG = { auto: true, clips: true, big: false };
+  try { Object.assign(CFG, JSON.parse(localStorage.getItem(P + '_cfg') || '{}')); } catch (e) {}
+  const saveCfg = () => { try { localStorage.setItem(P + '_cfg', JSON.stringify(CFG)); } catch (e) {} };
+  let db = null, list = [], cur = -1, urls = [], dirty = false, isOpen = false;
+  const openDB = () => db ? Promise.resolve(db) : new Promise((ok, no) => { const r = indexedDB.open(P + '_cam', 1); r.onupgradeneeded = () => r.result.createObjectStore('shots', { keyPath: 'id' }); r.onsuccess = () => { db = r.result; ok(db); }; r.onerror = () => no(r.error); });
+  const tx = (mode, fn) => openDB().then(d => new Promise((ok, no) => { const t = d.transaction('shots', mode), out = fn(t.objectStore('shots')); t.oncomplete = () => ok(out && 'result' in out ? out.result : undefined); t.onerror = () => no(t.error); }));
+  const all = () => tx('readonly', s => s.getAll()).then(a => (a || []).sort((x, y) => y.t - x.t)).catch(() => []);
+  const id = () => Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+  async function put(rec) {
+    rec.id = rec.id || id(); rec.t = rec.t || Date.now();
+    try {
+      await tx('readwrite', s => s.put(rec)); const a = await all(), del = [];
+      [['photo', 48], ['clip', 12]].forEach(([k, cap]) => { const L = a.filter(r => r.kind === k && !r.fav); if (L.length > cap) { L.sort((x, y) => (x.hype - y.hype) || (x.t - y.t)); del.push(...L.slice(0, L.length - cap)); } });
+      if (del.length) await tx('readwrite', s => { del.forEach(r => s.delete(r.id)); });
+      flash(rec);
+    } catch (e) {}
+  }
+  function flash(rec) { const f = $i(P + 'F'); if (!f) return; f.textContent = (rec.kind === 'clip' ? '🎬 ' : '📸 ') + (rec.tag || ''); f.classList.remove('on'); void f.offsetWidth; f.classList.add('on'); }
+  const free = () => { urls.forEach(u => URL.revokeObjectURL(u)); urls = []; };
+  const url = b => { const u = URL.createObjectURL(b); urls.push(u); return u; };
+  function sync() { $i(P + 'A').textContent = 'Auto photos: ' + (CFG.auto ? 'on' : 'off'); $i(P + 'V').textContent = 'Clips: ' + (CFG.clips ? 'on' : 'off'); $i(P + 'Z').textContent = 'Size: ' + (CFG.big ? 'Poster 4K' : 'Phone'); }
+  async function show() {
+    free(); list = await all(); const g = $i(P + 'G'); g.innerHTML = '';
+    if (!list.length) { g.innerHTML = '<p class="cme">' + o.empty + '</p>'; return; }
+    list.forEach((r, i) => {
+      const d = document.createElement('button'); d.className = 'cmt';
+      if (r.thumb) { const im = new Image(); im.src = url(r.thumb); d.append(im); }
+      const t = document.createElement('span'); t.className = 'tag'; t.textContent = (r.kind === 'clip' ? '▶ ' : '') + (r.tag || '') + (r.kind === 'clip' && r.dur ? ' ' + r.dur + 's' : ''); d.append(t);
+      if (r.fav) { const s = document.createElement('span'); s.className = 'fav'; s.textContent = '★'; d.append(s); }
+      d.onclick = () => view(i); g.append(d);
+    });
+  }
+  function view(i) {
+    cur = (i + list.length) % list.length; const r = list[cur], m = $i(P + 'M'); m.innerHTML = '';
+    if (r.kind === 'clip') { const v = document.createElement('video'); v.src = url(r.blob); v.controls = v.loop = v.autoplay = v.muted = v.playsInline = true; v.setAttribute('playsinline', ''); m.append(v); }
+    else { const im = new Image(); im.src = url(r.blob); m.append(im); }
+    if (r.cap) { const c = document.createElement('p'); c.className = 'cmc'; c.textContent = r.cap; m.append(c); }
+    $i(P + 'K').textContent = r.fav ? '★ Kept' : '☆ Keep'; $i(P + 'W').classList.add('on');
+  }
+  const file = r => { const ty = r.blob.type || '', ext = ty.includes('png') ? 'png' : ty.includes('mp4') ? 'mp4' : ty.includes('webm') ? 'webm' : 'jpg'; return new File([r.blob], o.fileBase + '-' + (r.ev || 'shot') + '-' + r.id + '.' + ext, { type: ty }); };
+  function dl(r) { const f = file(r), a = document.createElement('a'); a.href = URL.createObjectURL(f); a.download = f.name; document.body.append(a); a.click(); setTimeout(() => { URL.revokeObjectURL(a.href); a.remove(); }, 3000); }
+  async function share(r) { const f = file(r); if (navigator.canShare && navigator.canShare({ files: [f] })) { try { await navigator.share({ files: [f], title: o.title, text: r.cap || '' }); } catch (e) {} } else dl(r); }
+  function open() { isOpen = true; o.onOpen && o.onOpen(); sync(); $i(P + 'R').classList.add('on'); show(); }
+  function close() { isOpen = false; $i(P + 'W').classList.remove('on'); $i(P + 'R').classList.remove('on'); $i(P + 'M').innerHTML = ''; free(); }
+  const closeView = () => { $i(P + 'W').classList.remove('on'); $i(P + 'M').innerHTML = ''; if (dirty) { dirty = false; show(); } };
+  // markup
+  const root = document.createElement('div'); root.id = P + 'R'; root.className = 'cmr';
+  root.innerHTML = `<div class="cmh"><b>Camera roll</b><button id="${P}S" class="cms">📸 Snap now</button><button id="${P}A"></button><button id="${P}V"></button><button id="${P}Z"></button></div><button id="${P}X" class="cmx">✕</button><div id="${P}G" class="cmg"></div><div id="${P}W" class="cmv"><div id="${P}M" class="cmvm"></div><div class="cmvb"><button id="${P}P">‹</button><button id="${P}K">☆ Keep</button><button id="${P}H">Share</button><button id="${P}D">Save</button><button id="${P}Q">Delete</button><button id="${P}N">›</button><button id="${P}C">✕</button></div></div>`;
+  (o.mount || document.body).append(root);
+  if (!$i(P + 'F')) { const f = document.createElement('div'); f.id = P + 'F'; f.className = 'cmf'; (o.flashMount || document.body).append(f); }
+  $i(P + 'X').onclick = close;
+  $i(P + 'A').onclick = () => { CFG.auto = !CFG.auto; saveCfg(); sync(); };
+  $i(P + 'V').onclick = () => { CFG.clips = !CFG.clips; saveCfg(); sync(); };
+  $i(P + 'Z').onclick = () => { CFG.big = !CFG.big; saveCfg(); sync(); };
+  $i(P + 'S').onclick = () => { close(); o.onSnap && o.onSnap(); };
+  $i(P + 'C').onclick = closeView;
+  $i(P + 'P').onclick = () => view(cur - 1); $i(P + 'N').onclick = () => view(cur + 1);
+  $i(P + 'H').onclick = () => share(list[cur]); $i(P + 'D').onclick = () => dl(list[cur]);
+  $i(P + 'K').onclick = async () => { const r = list[cur]; r.fav = !r.fav; await tx('readwrite', s => s.put(r)); $i(P + 'K').textContent = r.fav ? '★ Kept' : '☆ Keep'; dirty = true; };
+  $i(P + 'Q').onclick = async () => { const r = list[cur]; await tx('readwrite', s => s.delete(r.id)); closeView(); await show(); if (list.length) view(Math.min(cur, list.length - 1)); };
+  return { CFG, put, all, open, close, get isOpen() { return isOpen; } };
+}
+/* shared helpers */
+const cmBlob = (c, t, q) => new Promise(ok => c.toBlob(ok, t, q));
+function cmShrink(c, w) { const h = Math.round(c.height * w / c.width), k = document.createElement('canvas'); k.width = w; k.height = h; k.getContext('2d').drawImage(c, 0, 0, w, h); return k; }
+function cmMime() { if (!window.MediaRecorder) return ''; return ['video/mp4;codecs=avc1', 'video/mp4', 'video/webm;codecs=vp9', 'video/webm'].find(m => { try { return MediaRecorder.isTypeSupported(m); } catch (e) { return false; } }) || ''; }
+/* comic speech bubble drawn into a capture (x,y = speaker's head in canvas px) */
+function cmBubble(x2, x, y, text, s, font) {
+  x2.save(); x2.font = '800 ' + Math.round(34 * s) + 'px ' + font; const w = x2.measureText(text).width + 34 * s, h = 58 * s, W = x2.canvas.width;
+  let bx = Math.max(12 * s, Math.min(W - w - 12 * s, x - w / 2)), by = Math.max(12 * s, y - h - 46 * s);
+  x2.lineWidth = 4 * s; x2.strokeStyle = '#1d1d24'; x2.fillStyle = '#fff';
+  const r = 18 * s; x2.beginPath(); x2.moveTo(bx + r, by); x2.arcTo(bx + w, by, bx + w, by + h, r); x2.arcTo(bx + w, by + h, bx, by + h, r);
+  const tx = Math.max(bx + 24 * s, Math.min(bx + w - 24 * s, x)); x2.lineTo(tx + 12 * s, by + h); x2.lineTo(Math.max(bx, Math.min(bx + w, x)), Math.min(y - 8 * s, by + h + 30 * s)); x2.lineTo(tx - 12 * s, by + h);
+  x2.arcTo(bx, by + h, bx, by, r); x2.arcTo(bx, by, bx + w, by, r); x2.closePath(); x2.fill(); x2.stroke();
+  x2.fillStyle = '#1d1d24'; x2.textBaseline = 'middle'; x2.fillText(text, bx + 17 * s, by + h / 2 + 1 * s); x2.restore();
+}
+
+/* ---------- cameraman: a second camera that films Tuto's big moments on the planet ----------
+   Watches flips, nose boings, throws, rides, breakdancing, the bike and pod, take-off and the
+   water planet. Takes portrait photos from its own angles (low hero shot, profile, dutch tilt,
+   face close-up, overhead, chase, and a far shot of the whole head-planet) with the outlines on,
+   and films short clips with GTA-style cameras (chase, side tracking, roadside, orbit).
+   The player's camera never moves. Everything goes to the Camera roll (🎞️). */
+const TUCM_TAG = { flip: 'FLIP!', boing: 'BOING!', yeet: 'YEET', ride: 'DINO RIDE', dance: 'BREAKDANCE', glide: 'GLIDE', trooper: 'TROOPER', moto: 'BIKE', pod: 'HOVER POD', fly: 'TAKE OFF', sub: 'SUBMARINE', skid: 'SKRRT', pretty: 'HEAD PLANET', snap: 'SNAP' };
+const TUCM_PLAN = { flip: [300], boing: [550, 1500], yeet: [350, 950], ride: [550], dance: [2600, 5200], glide: [450], trooper: [800], moto: [900], pod: [900], fly: [1300, 2600], sub: [1100], skid: [150] };
+const TUCM_H = { flip: 3, boing: 5, yeet: 4, ride: 3, dance: 4, glide: 3, trooper: 4, moto: 4, pod: 4, fly: 5, sub: 4, skid: 2 };
+const TUCM_V = { flip: ['low', 'side', 'dutch'], boing: ['planet', 'chase', 'low'], yeet: ['side', 'low', 'dutch'], ride: ['side', 'low', 'hero'], dance: ['low', 'face', 'top', 'dutch'],
+  glide: ['side', 'planet', 'chase'], trooper: ['low', 'face', 'dutch'], moto: ['side', 'chase', 'low'], pod: ['side', 'chase', 'low'], fly: ['chase', 'planet', 'side'], sub: ['side', 'chase'],
+  skid: ['low', 'side'], pretty: ['planet', 'low', 'hero', 'planet'], snap: ['low', 'side', 'dutch', 'face', 'planet', 'hero'] };
+const tuRoll = makeCamRoll({ prefix: 'tucm', title: 'Stick Head', fileBase: 'tuto',
+  empty: 'Nothing yet. The cameraman films flips, nose boings, throws, dino rides, breakdancing and flights on its own. Tap 📸 Snap now for a shot from its angle.',
+  onOpen: () => { tuQ.length = 0; if (tuClip) tuClipStop(false); }, onSnap: () => tuQ.push({ at: performance.now() + 150, ev: 'snap', hype: 2 }) });
+const tuCam = new THREE.PerspectiveCamera(45, 9 / 16, 0.1, 400), tuRay = new THREE.Raycaster(), tuV = new THREE.Vector3(), tuV2 = new THREE.Vector3();
+let tuQ = [], tuHist = [], tuLast = {}, tuShotT = 0, tuWhim = performance.now() + 45000, tuClip = null, tuClipT = -1e9, tuPrev = {};
+const tuR = (a, b) => a + Math.random() * (b - a);
+function tuBasis() { // feet, local up, forward and right for wherever Tuto is (planet, bike, pod, sky, sea)
+  const P = hero.root.position.clone(), lu = (FL && FL.g ? FL.g : up).clone().normalize();
+  const fw = (FL && FL.fwd ? FL.fwd : facing).clone(); fw.addScaledVector(lu, -fw.dot(lu)); if (fw.lengthSq() < 1e-6) fw.copy(camFwd); fw.normalize();
+  return { P, lu, fw, rt: fw.clone().cross(lu).normalize() };
+}
+function tuState() { return { flip: flipT >= 0, boing: noseBoing >= 0, glide: gliding, ride: !!riding, throwSeq, dance: dancing, trooper: !!hero.trooper, drive: drive ? drive.mode : '', skid: typeof skidT !== 'undefined' && skidT > 0 }; }
+function tuWatch() {
+  const s = tuState(), p = tuPrev, now = performance.now(), hit = ev => tuEvent(ev);
+  if (s.flip && !p.flip) hit('flip'); if (s.boing && !p.boing) hit('boing'); if (s.glide && !p.glide) hit('glide'); if (s.ride && !p.ride) hit('ride');
+  if (p.throwSeq !== undefined && s.throwSeq !== p.throwSeq) hit('yeet'); if (s.dance && !p.dance) hit('dance'); if (s.trooper !== p.trooper && p.trooper !== undefined) hit('trooper');
+  if (s.drive && s.drive !== p.drive) hit(s.drive === 'hover' ? 'pod' : s.drive); if (s.skid && !p.skid) hit('skid');
+  tuPrev = s;
+  if (now > tuWhim && !tuQ.length && !tuClip && grounded && !drive) { tuWhim = now + tuR(60000, 95000); tuQ.push({ at: now, ev: 'pretty', hype: 2 }); }
+}
+function tuEvent(ev) {
+  const now = performance.now(), h = TUCM_H[ev] || 2; if (now - (tuLast[ev] || -1e9) < (h >= 5 ? 9000 : 20000)) return; tuLast[ev] = now;
+  if (tuRoll.CFG.auto) (TUCM_PLAN[ev] || [400]).forEach((d, i) => tuQ.push({ at: now + d, ev, hype: h - i * .5 }));
+  if (h >= 4 && tuRoll.CFG.clips && !tuClip && now - tuClipT > 25000) tuClipStart(ev, h);
+}
+function tuPick(ev) { const L = TUCM_V[ev] || TUCM_V.snap, recent = tuHist.slice(-12), fresh = L.filter(v => !recent.includes(ev + ':' + v)), P = fresh.length ? fresh : L; return P[(Math.random() * P.length) | 0]; }
+function tuOut(pos) { // keep the lens above the head-planet's skin
+  const d = pos.length(); if (d < R + 0.35) pos.multiplyScalar((R + 0.35) / Math.max(d, 1e-3)); return pos; }
+function tuFrame(v) {
+  const { P, lu, fw, rt } = tuBasis(), C = P.clone().addScaledVector(lu, 0.85), sg = Math.random() < .5 ? 1 : -1, f = { up: lu.clone(), roll: 0 };
+  if (v === 'low') { f.pos = P.clone().addScaledVector(fw, tuR(2.4, 3.2)).addScaledVector(rt, tuR(-1.2, 1.2)).addScaledVector(lu, 0.28); f.look = P.clone().addScaledVector(lu, 1.15); f.fov = 56; }
+  else if (v === 'dutch') { f.pos = P.clone().addScaledVector(fw, tuR(2.6, 3.4)).addScaledVector(rt, sg * 1.4).addScaledVector(lu, 0.6); f.look = C; f.fov = 50; f.roll = sg * tuR(.16, .26); }
+  else if (v === 'side') { f.pos = P.clone().addScaledVector(rt, sg * tuR(4, 5.5)).addScaledVector(fw, tuR(-.4, 1)).addScaledVector(lu, 1.0); f.look = C; f.fov = 38; }
+  else if (v === 'face') { f.pos = P.clone().addScaledVector(fw, 3.4).addScaledVector(rt, tuR(-.6, .6)).addScaledVector(lu, 1.5); f.look = P.clone().addScaledVector(lu, 1.25); f.fov = 34; }
+  else if (v === 'top') { f.pos = P.clone().addScaledVector(lu, 4.6).addScaledVector(fw, .9); f.look = P.clone().addScaledVector(lu, .5); f.fov = 42; f.up = fw.clone(); }
+  else if (v === 'chase') { f.pos = P.clone().addScaledVector(fw, -4.6).addScaledVector(lu, 2.0).addScaledVector(rt, sg * .6); f.look = P.clone().addScaledVector(fw, 3).addScaledVector(lu, .6); f.fov = 58; }
+  else if (v === 'planet') { f.pos = P.clone().addScaledVector(lu, 17).addScaledVector(rt, sg * 13).addScaledVector(fw, 9); f.look = P.clone().lerp(new THREE.Vector3(), .45); f.fov = 52; }
+  else { f.pos = P.clone().addScaledVector(fw, 3.3).addScaledVector(rt, sg * 1.3).addScaledVector(lu, 1.2); f.look = C; f.fov = 45; }
+  if (!FL) tuOut(f.pos); return f;
+}
+let tuMs = null, tuMsT = 0;
+function tuMeshes() { const now = performance.now(); if (tuMs && now - tuMsT < 400) return tuMs; tuMs = []; tuMsT = now;
+  scene.traverseVisible(o => { if (o.isMesh && !o.isSkinnedMesh && !tuMine(o) && !(o.material && o.material.transparent && o.material.opacity < .6)) tuMs.push(o); }); return tuMs; }
+const tuMine = o => { for (let q = o; q; q = q.parent) if (q === hero.root || q === shadow) return true; return false; };
+function tuClear(f) { // Tuto's body and head must be in plain view (the planet-scale shot only needs his head)
+  const { P, lu } = tuBasis(); const T = [P.clone().addScaledVector(lu, 1.3)]; if (f.fov < 48) T.push(P.clone().addScaledVector(lu, .5));
+  for (const t of T) { const d = f.pos.distanceTo(t); tuRay.set(f.pos, tuV.copy(t).sub(f.pos).normalize()); tuRay.far = d;
+    if (tuRay.intersectObjects(tuMeshes(), false).some(x => x.distance < d - .55)) return false; }
+  return true;
+}
+function tuAim(cam, f, aspect) { cam.fov = f.fov; cam.aspect = aspect; cam.position.copy(f.pos); cam.up.copy(f.up); cam.lookAt(f.look); if (f.roll) cam.rotateZ(f.roll); cam.updateProjectionMatrix(); cam.updateMatrixWorld(); }
+function tuShoot(q) {
+  const now = performance.now(); if (modeKind !== 'planet' || mode !== 'play' || tuRoll.isOpen || document.hidden || (q.ev !== 'snap' && now - tuShotT < 2500)) return;
+  let v, f = null; for (let i = 0; i < 8 && !f; i++) { v = tuPick(q.ev); f = tuFrame(v); if (!tuClear(f)) f = null; } if (!f) return;
+  const hk = q.ev + ':' + v, score = q.hype + (tuHist.slice(-12).includes(hk) ? 0 : 2); if (q.ev !== 'snap' && score < 4) return;
+  tuHist.push(hk); if (tuHist.length > 40) tuHist.shift(); tuShotT = now;
+  const big = tuRoll.CFG.big, W = big ? 2160 : 1080, H = big ? 3840 : 1920, c = document.createElement('canvas'); c.width = W; c.height = H;
+  tuAim(tuCam, f, W / H); const pr = renderer.getPixelRatio(), sz = renderer.getSize(new THREE.Vector2());
+  try { renderer.setPixelRatio(1); renderer.setSize(W, H, false); effect.render(scene, tuCam); c.getContext('2d').drawImage(renderer.domElement, 0, 0, W, H); }
+  finally { renderer.setPixelRatio(pr); renderer.setSize(sz.x, sz.y, false); effect.render(scene, camera); }
+  const tag = TUCM_TAG[q.ev] || q.ev.toUpperCase();
+  Promise.all([cmBlob(c, big ? 'image/png' : 'image/jpeg', .92), cmBlob(cmShrink(c, 270), 'image/jpeg', .8)]).then(([blob, thumb]) => { if (blob) tuRoll.put({ kind: 'photo', ev: q.ev, v, hype: score, tag, blob, thumb, w: W, h: H }); });
+}
+/* clips: GTA-style cinematic cameras, drawn into their own canvas just before each normal frame */
+function tuClipStart(ev, h) {
+  const mt = cmMime(), k = document.createElement('canvas'); if (!mt || !k.captureStream) return;
+  const bs = renderer.getDrawingBufferSize(new THREE.Vector2()), pr = renderer.getPixelRatio();
+  let ch = Math.min(tuRoll.CFG.big ? 1920 : 1280, bs.y, Math.floor(bs.x * 16 / 9)); ch -= ch % (2 * Math.ceil(pr)); const cw = Math.round(ch * 9 / 16 / 2) * 2; if (ch < 320) return;
+  k.width = cw; k.height = ch;
+  const modes = (ev === 'moto' || ev === 'pod' || ev === 'fly' || ev === 'sub') ? ['chase', 'road', 'side'] : ev === 'dance' ? ['orbit', 'orbit', 'side'] : ['road', 'side', 'orbit', 'chase'];
+  const mode = modes[(Math.random() * modes.length) | 0];
+  try {
+    const rec = new MediaRecorder(k.captureStream(30), { mimeType: mt, videoBitsPerSecond: tuRoll.CFG.big ? 12e6 : 6e6 }), chunks = [];
+    rec.ondataavailable = e => { if (e.data && e.data.size) chunks.push(e.data); }; rec.start(500);
+    tuClip = { ev, h, rec, chunks, mt, k, x2: k.getContext('2d'), t0: performance.now(), dur: tuR(6000, 8000), mode, pos: null, look: null, a: 0, sg: Math.random() < .5 ? 1 : -1, thumb: null };
+  } catch (e) { tuClip = null; }
+}
+function tuClipFrame(dt) {
+  const C = tuClip, { P, lu, fw, rt } = tuBasis(), t = (performance.now() - C.t0) / 1000, body = P.clone().addScaledVector(lu, .85);
+  let want, look = body, fov = 48;
+  if (C.mode === 'chase') { want = P.clone().addScaledVector(fw, -5).addScaledVector(lu, 2.1); look = P.clone().addScaledVector(fw, 3).addScaledVector(lu, .7); fov = 60; }
+  else if (C.mode === 'side') { want = P.clone().addScaledVector(rt, C.sg * 4.8).addScaledVector(lu, 1.1); fov = 40; }
+  else if (C.mode === 'orbit') { C.a += dt * .45; want = P.clone().addScaledVector(fw, Math.cos(C.a) * 3.6).addScaledVector(rt, Math.sin(C.a) * 3.6).addScaledVector(lu, 1.2); fov = 44; }
+  else { // roadside: a fixed camera ahead of him; when he gets far, it jumps ahead again
+    if (!C.road || C.road.distanceTo(P) > 13) { C.road = P.clone().addScaledVector(fw, drive || FL ? 11 : 6).addScaledVector(rt, C.sg * 2.6).addScaledVector(lu, .5); if (!FL) tuOut(C.road); C.pos = null; }
+    want = C.road; fov = 42; }
+  if (!FL) tuOut(want);
+  const kk = 1 - Math.exp(-(C.mode === 'chase' ? 4 : 3) * dt);
+  if (!C.pos) { C.pos = want.clone(); C.look = look.clone(); C.up = lu.clone(); } else { if (C.mode !== 'road') C.pos.lerp(want, kk); C.look.lerp(look, Math.min(1, kk * 1.6)); C.up.lerp(lu, kk).normalize(); }
+  tuAim(tuCam, { pos: C.pos, look: C.look, up: C.up, fov }, C.k.width / C.k.height);
+  const pr = renderer.getPixelRatio(), bs = renderer.getDrawingBufferSize(new THREE.Vector2()), vp = renderer.getViewport(new THREE.Vector4()), w = C.k.width, h = C.k.height;
+  renderer.setViewport(0, 0, w / pr, h / pr); renderer.setScissor(0, 0, w / pr, h / pr); renderer.setScissorTest(true);
+  try { effect.render(scene, tuCam); C.x2.drawImage(renderer.domElement, 0, bs.y - h, w, h, 0, 0, w, h); } finally { renderer.setScissorTest(false); renderer.setViewport(vp); }
+  if (!C.thumb && t > C.dur / 2500) C.thumb = cmShrink(C.k, 270);
+  if (t * 1000 > C.dur) tuClipStop(true);
+}
+function tuClipStop(keep) {
+  const C = tuClip; tuClip = null; tuClipT = performance.now(); if (!C) return;
+  C.rec.onstop = () => { if (!keep || !C.chunks.length) return; const blob = new Blob(C.chunks, { type: C.mt.split(';')[0] });
+    (C.thumb ? cmBlob(C.thumb, 'image/jpeg', .8) : Promise.resolve(null)).then(thumb => tuRoll.put({ kind: 'clip', ev: C.ev, v: C.mode, hype: C.h, tag: TUCM_TAG[C.ev] || C.ev.toUpperCase(), blob, thumb, dur: Math.round((performance.now() - C.t0) / 1000) })); };
+  try { C.rec.stop(); } catch (e) {}
+}
+function tuBefore(dt) { if (tuClip) { if (modeKind !== 'planet' || mode !== 'play' || tuRoll.isOpen) tuClipStop(false); else try { tuClipFrame(dt); } catch (e) { tuClipStop(false); } } }
+function tuAfter() {
+  if (modeKind !== 'planet' || mode !== 'play' || tuRoll.isOpen) { tuPrev = tuState(); return; }
+  tuWatch();
+  const now = performance.now(), i = tuQ.findIndex(q => now >= q.at); if (i >= 0) { const q = tuQ.splice(i, 1)[0]; try { tuShoot(q); } catch (e) {} }
+}
+document.getElementById('rollBtn').addEventListener('click', e => { e.stopPropagation(); tuRoll.open(); });
+
 let last = performance.now();
 function frame(now) {
   const dt = Math.min(0.05, (now - last) / 1000); last = now;
-  if (modeKind === 'planet') { update(dt); effect.render(scene, camera); if (diaryPending) diaryCapture(); }
+  if (modeKind === 'planet') { update(dt); tuBefore(dt); effect.render(scene, camera); if (diaryPending) diaryCapture(); tuAfter(); }
   else if (modeKind === 'maker') { mkUpdate(dt); effect.render(MK.scene, MK.cam); }
   else if (modeKind === 'mocap') { mcUpdate(dt); effect.render(MC.scene, MC.cam); }
   else if (modeKind === 'jam') { jmUpdate(dt); effect.render(JM.scene, JM.cam); }
@@ -4668,7 +4894,7 @@ addEventListener('resize', () => {
   if (MK.cam) { MK.cam.aspect = innerWidth / innerHeight; MK.cam.updateProjectionMatrix(); }
   renderer.setSize(innerWidth, innerHeight);
 });
-window.__debug = { MK, MC, JM, JA, jmSelect, jaRecToggle, jaEncodeMp3, jaExport, mcSolve, mcApply, mcDemoFrame, openMenu, switchTo, chooseDisc, leaveMode, get menu() { return menu; }, get modeKind() { return modeKind; }, mkPlacePoint, mkLine, mkFill, mkDelete, input, touchVec, keys, get hero() { return hero; }, get mode() { return mode; } };
+window.__debug = { tuRoll, tuQ: () => tuQ, tuHist: () => tuHist, tuClipStart, tuEvent, MK, MC, JM, JA, jmSelect, jaRecToggle, jaEncodeMp3, jaExport, mcSolve, mcApply, mcDemoFrame, openMenu, switchTo, chooseDisc, leaveMode, get menu() { return menu; }, get modeKind() { return modeKind; }, mkPlacePoint, mkLine, mkFill, mkDelete, input, touchVec, keys, get hero() { return hero; }, get mode() { return mode; } };
 </script>
 </body>
 </html>
